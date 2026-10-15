@@ -745,6 +745,9 @@
             en: {
                 brand: "Edgar9",
                 tagline: "Business Self-Assessment Tool",
+                beta: "Beta version",
+                developedWith: "Developed with",
+                by: "by",
                 whoAreYou: "Who are you in relation to this business?",
                 whoAreYouDesc: "Context for the report. It does not change the score.",
                 businessName: "Business name",
@@ -839,6 +842,9 @@
             pt: {
                 brand: "Edgar9",
                 tagline: "Ferramenta de Autoavaliação de Negócios",
+                beta: "Versão beta",
+                developedWith: "Desenvolvido com",
+                by: "por",
                 whoAreYou: "Quem é você em relação a este negócio?",
                 whoAreYouDesc: "Contexto para o relatório. Não altera a pontuação.",
                 businessName: "Nome do negócio",
@@ -1717,7 +1723,13 @@
                     )}
 
                     <footer className="w-full text-center py-6 text-xs text-brandDark/50 no-print">
-                        Edgar9 • {t.tagline} • Molho Secreto
+                        <div>Edgar9 • {t.tagline} • Molho Secreto</div>
+                        <div className="mt-1.5">
+                            <span className="inline-block px-2 py-0.5 rounded-full bg-brandRose/20 text-brandTerracotta font-bold uppercase tracking-wider text-[10px] align-middle">{t.beta}</span>
+                            <span className="mx-2">•</span>
+                            {t.developedWith} 🤘🏾 {t.by}{' '}
+                            <a href="https://github.com/faustovanin" target="_blank" rel="noopener noreferrer" className="font-semibold text-brandDark/70 underline hover:text-brandTerracotta">faustovanin</a>
+                        </div>
                     </footer>
                 </div>
             );
