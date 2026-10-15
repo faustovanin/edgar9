@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edgar9 - Intelligent Business Architecture</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandRose: '#D9919E',
+                        brandDark: '#3E4039',
+                        brandCream: '#F2EAD0',
+                        brandBorder: '#BFBBB0',
+                        brandTerracotta: '#BF7D56',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Font Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- React, ReactDOM, and Babel -->
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+
+    <style>
+        :root {
+            --color-rose: #D9919E;
+            --color-dark: #3E4039;
+            --color-cream: #F2EAD0;
+            --color-border: #BFBBB0;
+            --color-terracotta: #BF7D56;
+        }
+
+        body {
+            background-color: var(--color-cream);
+            color: var(--color-dark);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F2EAD0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #BFBBB0;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #BF7D56;
+        }
+
+        /* Typeform Smooth Card Animations */
+        .card-enter {
+            animation: slideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes slideUpFade {
+            0% {
+                opacity: 0;
+                transform: translateY(16px) scale(0.98);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .custom-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(191, 125, 86, 0.35);
+        }
+
+        /* Print Optimized View */
+        @media print {
+            header, footer, .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+                color: black !important;
+            }
+            .print-card {
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brandRose selection:text-white">
+
+    <div id="root" class="min-h-screen flex flex-col"></div>
+
+    <script>
+        // Edgar9 scoring engine — implements the rules of Edgar9_Form.xlsx (EN) plus the PT-BR additions.
+        // Language-independent: answers are stored as { [questionId]: { value: optionId, note: string } }.
+        (function () {
+            const L = (en, pt) => ({ en, pt });
+            const o = (id, en, pt, points) => ({ id, label: L(en, pt), points: points || 0 });
+
+            const SECTIONS = [
+                {
+                    id: 'org',
+                    title: L("Organization Profile", "Perfil Organizacional"),
+                    intro: L("What's the type of your organization? Your answers define the Organization factor of the Exponential Potential.",
+                             "Qual é o tipo do seu empreendimento? As respostas definem o fator Organização do Potencial Exponencial."),
+                    questions: [
+                        { id: 'org_decisions', scored: true, ref: "Exponential Organizations (Salim Ismail)",
+                          label: L("Who is taking decisions? (Autonomy)", "Quem toma decisões? (Autonomia)"),
+                          options: [
+                              o('one_person', "One Person", "Uma Pessoa", 0),
+                              o('some_people', "Some People in the Company", "Algumas Pessoas", 2),
+                              o('everybody', "Everybody in the Company", "Todos na Companhia", 4),
+                              o('community', "The Community", "A Comunidade", 8)
+                          ] },
+                        { id: 'org_funding', scored: true,
+                          label: L("Who is paying the bills?", "Quem paga as contas?"),
+                          options: [
+                              o('vc', "Venture Capitalists", "Venture Capitalists", 4),
+                              o('owners', "Owners", "Proprietários", 0),
+                              o('investors', "Investors", "Investidores", 2),
+                              o('shareholders', "Shareholders", "Acionistas", 2),
+                              o('community', "The Community", "A Comunidade", 8),
+                              o('sales', "Sales", "Vendas", 2)
+                          ] },
+                        { id: 'org_experimentation', scored: true, ref: "Exponential Organizations (Salim Ismail)",
+                          label: L("What is your openness to experimentation?", "Qual a abertura para experimentação?"),
+                          options: [
+                              o('purpose', "Purpose", "Propósito", 8),
+                              o('business_model', "Business Model", "Modelo de Negócio", 4),
+                              o('delivery_model', "Delivery Model", "Modelo de Entrega", 2),
+                              o('feature', "Product/Service", "Produto/Serviço", 0)
+                          ] },
+                        { id: 'org_management', scored: true, ref: "Holacracy",
+                          label: L("Management Style", "Estilo de gestão"),
+                          options: [
+                              o('traditional', "Traditional", "Tradicional", 0),
+                              o('flat', "Cooperative", "Cooperativo", 2),
+                              o('holacracy', "Flat management", "Gestão horizontal", 8),
+                              o('smart_contract', "Automated", "Automatizado", 16)
+                          ] }
+                    ]
+                },
+                {
+                    id: 'ocean',
+                    title: L("Ocean's Color", "Oceano Azul"),
+                    intro: L("Are you competing in a red ocean or creating a blue one? Your answers define the Ocean's Color factor.",
+                             "Você compete em um oceano vermelho ou cria um oceano azul? As respostas definem o fator Cor do Oceano."),
+                    ref: "Kim & Mauborgne",
+                    questions: [
+                        { id: 'ocean_space', scored: true, label: L("Market Space", "Espaço de Mercado"),
+                          options: [o('existing', "Existing", "Existente", 0), o('unexplored', "Unexplored", "Inexplorado", 2)] },
+                        { id: 'ocean_competitors', scored: true, label: L("How you approach your competitors", "Como você aborda os competidores"),
+                          options: [o('beat', "Beat them", "Competir", 0), o('irrelevant', "Make them irrelevant", "Torná-los Irrelevantes", 2)] },
+                        { id: 'ocean_demand', scored: true, label: L("Demand", "Demanda"),
+                          options: [o('existing', "Existing", "Existente", 0), o('unexplored', "Unexplored", "Inexplorado", 2)] },
+                        { id: 'ocean_value_cost', scored: true, label: L("Value-cost trade-off", "Relação custo-benefício"),
+                          options: [o('make', "Make", "Construir", 0), o('break', "Break", "Quebrar", 2)] }
+                    ]
+                },
+                {
+                    id: 'business',
+                    title: L("About the Business", "O Negócio"),
+                    intro: L("How the business is designed, delivered and staffed. Together with Organization and Ocean's Color, this defines the Exponential Potential.",
+                             "Como o negócio é desenhado, entregue e operado. Junto com Organização e Cor do Oceano, define o Potencial Exponencial."),
+                    questions: [
+                        { id: 'biz_model', scored: true, ref: "Peter Weill & Jeanne Ross",
+                          label: L("Business Model", "Modelo de Negócio"),
+                          options: [
+                              o('supplier', "Supplier", "Supplier", 0),
+                              o('modular_producer', "Modular Producer", "Modular Producer", 2),
+                              o('omnichannel', "Omnichannel", "Omnichannel", 4),
+                              o('ecosystem_driver', "Ecosystem Driver", "Ecosystem Driver", 8),
+                              o('distributed', "Distributed", "Distribuído", 16)
+                          ] },
+                        { id: 'biz_delivery', scored: true,
+                          label: L("Delivery Model", "Modelo de Entrega"),
+                          options: [
+                              o('physical_branch', "Physical Branch", "Loja Física", 0),
+                              o('customer_premise', "Customer Premise", "No Cliente", 2),
+                              o('website', "Transactional Website", "Website", 4),
+                              o('mobile_app', "Mobile App", "Aplicativo Móvel", 8),
+                              o('platform', "Platform", "Plataforma", 16),
+                              o('blockchain', "Blockchain", "Blockchain", 32)
+                          ] },
+                        { id: 'biz_focus', scored: false,
+                          label: L("Major Focus", "Foco"),
+                          options: [
+                              o('society', "Society Development", "Desenvolvimento Social"),
+                              o('wellbeing', "Individual Well-Being", "Bem Estar Social"),
+                              o('entertainment', "Entertainment", "Entretenimento"),
+                              o('finance', "Finance", "Finanças"),
+                              o('retail', "Retail", "Varejo"),
+                              o('government', "Government", "Governo"),
+                              o('communication', "Communication", "Comunicação"),
+                              o('research', "Research", "Pesquisa")
+                          ] },
+                        { id: 'biz_staff', scored: true, ref: "Exponential Organizations (Salim Ismail)",
+                          label: L("Staff Allocation", "Alocação do time"),
+                          options: [
+                              o('employees', "Employees", "Empregados", 0),
+                              o('volunteers', "Volunteers", "Voluntários", 4),
+                              o('on_demand', "On Demand", "Sob Demanda", 8)
+                          ] },
+                        { id: 'biz_community', scored: true, ref: "Exponential Organizations (Salim Ismail)",
+                          label: L("Community Distribution", "Distribuição da comunidade"),
+                          options: [
+                              o('global', "Global", "Global", 8),
+                              o('regional', "Regional", "Regional", 4),
+                              o('niche', "Niche", "Nicho", 2)
+                          ] },
+                        { id: 'biz_assets', scored: true, ref: "Exponential Organizations (Salim Ismail)",
+                          label: L("Assets", "Recursos"),
+                          options: [o('own', "Own", "Próprios", 0), o('leased', "Leased", "Alavancados", 4)] },
+                        { id: 'biz_generation', scored: false,
+                          label: L("Target Public Generation", "Público-alvo"),
+                          options: [
+                              o('boomers', "Baby Boomers", "Baby Boomers"),
+                              o('gen_x', "Generation X", "Geração X"),
+                              o('gen_y', "Generation Y", "Geração Y"),
+                              o('gen_z', "Generation Z", "Geração Z")
+                          ] }
+                    ]
+                },
+                {
+                    id: 'tipping',
+                    title: L("Tipping Strategy", "Atratividade"),
+                    intro: L("How the business attracts and retains its users. Defines the Tipping Potential.",
+                             "Como o negócio atrai e retém seus usuários. Define o Score de Atratividade."),
+                    questions: [
+                        { id: 'tip_value', group: 'attraction', scored: true,
+                          label: L("The value you add", "Valor agregado"),
+                          options: [
+                              o('money', "Money", "Dinheiro", 1),
+                              o('timing', "Timing", "Tempo", 2),
+                              o('social', "Social", "Social", 4),
+                              o('culture', "Culture", "Cultura", 8),
+                              o('knowledge', "Knowledge", "Conhecimento", 16)
+                          ] },
+                        { id: 'tip_marquee', group: 'attraction', scored: true, ref: "Pierre Azoulay & Catherine Tucker",
+                          label: L("Marquee Network", "Rede de usuários-chave"),
+                          options: [
+                              o('no', "No", "Não", 0),
+                              o('low', "Lowly Influential", "Pouco Influente", 2),
+                              o('high', "Highly Influential", "Altamente Influente", 4)
+                          ] },
+                        { id: 'tip_outcomes', group: 'attraction', scored: true,
+                          label: L("Short-Term Outcomes", "Retorno de curto prazo"),
+                          hint: L("Related to the value added", "Relacionado ao valor agregado"),
+                          options: [o('low', "Low", "Baixo", 0), o('medium', "Medium", "Médio", 2), o('high', "High", "Alto", 4)] },
+                        { id: 'tip_problem', group: 'retention', scored: true, ref: "Maslow's Hierarchy of Needs",
+                          label: L("The problem you solve", "O problema que é resolvido"),
+                          options: [
+                              o('physiological', "Physiological", "Fisiológico", 1),
+                              o('safety', "Safety", "Segurança", 2),
+                              o('love', "Love/Belonging", "Amor/Pertencimento", 4),
+                              o('esteem', "Esteem", "Estima", 8),
+                              o('self_actualization', "Self-Actualization", "Realização Pessoal", 16)
+                          ] },
+                        { id: 'tip_culture', group: 'retention', scored: true,
+                          label: L("Culture", "Cultura"),
+                          options: [o('weak', "Weak", "Fraca", 4), o('strong', "Strong", "Forte", 1), o('diverse', "Diverse", "Diversa", 2)] },
+                        { id: 'tip_coendeavor', group: 'retention', scored: true, ref: "Pierre Azoulay & Catherine Tucker",
+                          label: L("Co-Endeavor", "Co-Empreendimento"),
+                          options: [o('no', "No", "Não", 0), o('yes', "Yes", "Sim", 4)] },
+                        { id: 'tip_support', group: 'retention', scored: true,
+                          label: L("Support Provided", "Provisão de suporte"),
+                          options: [o('content', "Content", "Conteúdo", 0), o('orientation', "Orientation", "Orientação", 2), o('training', "Training", "Treinamento", 4)] },
+                        { id: 'tip_gamification', group: 'both', scored: true,
+                          label: L("Gamification", "Gamificação"),
+                          options: [
+                              o('core', "Core Mechanism", "Mecanismo-Chave", 4),
+                              o('marketing', "Marketing Purposes", "Marketing", 2),
+                              o('none', "Nonexistent", "Inexistente", 0)
+                          ] },
+                        { id: 'tip_ux', group: 'both', scored: false,
+                          label: L("User Experience", "Experiência do usuário"),
+                          options: [o('relevant', "Relevant", "Relevante"), o('strategic', "Strategic", "Estratégica"), o('vital', "Vital", "Vital")] },
+                        { id: 'tip_exclusivity', group: 'both', scored: false,
+                          label: L("Exclusivity", "Exclusividade"),
+                          options: [
+                              o('not_relevant', "Not Relevant", "Irrelevante"),
+                              o('lock_in', "Lock-in", "Lock-in"),
+                              o('attraction', "Attraction", "Atração"),
+                              o('always_premium', "Always Premium", "Sempre Premium")
+                          ] }
+                    ]
+                },
+                {
+                    id: 'monetization',
+                    title: L("Monetization", "Monetização"),
+                    intro: L("Which income sources does the business use? Each source that conflicts with your other answers lowers the Monetization Factor of the Coring Potential.",
+                             "Quais fontes de receita o negócio utiliza? Cada fonte em conflito com as demais respostas reduz o Fator de Monetização do Score de Consistência."),
+                    questions: ['crowdfunding', 'advertising', 'transaction', 'monthly', 'premium'].map((k) => ({
+                        id: 'mon_' + k, scored: true,
+                        label: {
+                            crowdfunding: L("Crowdfunding / ICO", "Crowdfunding / ICO"),
+                            advertising: L("Advertising", "Propaganda"),
+                            transaction: L("Charge on Transaction", "Percentual de transação"),
+                            monthly: L("Monthly Plan", "Plano Mensal"),
+                            premium: L("Premium Access", "Acesso Premium")
+                        }[k],
+                        options: [o('yes', "Yes", "Sim"), o('no', "No", "Não")]
+                    }))
+                },
+                {
+                    id: 'coring',
+                    title: L("Coring Strategy", "Core de Negócio"),
+                    intro: L("Market intermediation and technology architecture. Together with the Monetization Factor, defines the Coring Potential.",
+                             "Intermediação de mercado e arquitetura de tecnologia. Junto com o Fator de Monetização, define o Score de Consistência."),
+                    questions: [
+                        { id: 'cor_mediation', group: 'market', platformOnly: true, scored: true, ref: "Pierre Azoulay & Catherine Tucker",
+                          label: L("Mediation", "Mediação"),
+                          options: [
+                              o('agnostic', "Agnostic", "Agnóstico", 0),
+                              o('rules_only', "Rules Only", "Regras Apenas", 2),
+                              o('rule_judge', "Rule and Judge", "Regrar e Julgar", 4),
+                              o('co_responsible', "Co-Responsible", "Co-Responsável", 8)
+                          ] },
+                        { id: 'cor_market', group: 'market', platformOnly: true, scored: true,
+                          label: L("Market Model", "Modelo de Mercado"),
+                          options: [o('two', "Two-Sided", "Two-Sided", 0), o('three', "Three-Sided", "Three-Sided", 0), o('multi', "Multi-Sided", "Multi-Sided", 0)] },
+                        { id: 'cor_focus', group: 'market', platformOnly: true, scored: true, ref: "Pierre Azoulay & Catherine Tucker",
+                          label: L("Main Focus", "Foco Principal"),
+                          options: [o('search', "Search", "Busca", 0), o('transaction', "Transaction", "Transação", 0)] },
+                        { id: 'cor_dev', group: 'tech', scored: true,
+                          label: L("Development Paradigm", "Paradigma de Desenvolvimento"),
+                          options: [o('waterfall', "Waterfall", "Cascata", 0), o('agile', "Agile", "Ágil", 2), o('experimental', "Experimental", "Experimental", 2)] },
+                        { id: 'cor_api', group: 'tech', scored: true,
+                          label: L("Interfaces (API)", "Interfaces (API)"),
+                          options: [o('no', "No", "Não", 0), o('data', "Data", "Dados", 2), o('transaction', "Transaction", "Transações", 2), o('full', "Fully Exposed", "Abertura Total", 2)] },
+                        { id: 'cor_data', group: 'tech', scored: true,
+                          label: L("Data Collection", "Coleta de Dados"),
+                          options: [o('crud', "CRUD", "CRUD", 0), o('transaction', "Transaction", "Transação", 2), o('internal', "Everything Internal", "Tudo Interno", 4), o('available', "Everything Available", "Tudo Disponível", 8)] },
+                        { id: 'cor_analytics', group: 'tech', scored: true,
+                          label: L("Analytics", "Analytics"),
+                          options: [o('no', "No", "Não", 0), o('kpi', "KPI", "Indicadores-Chave", 2), o('strategic', "Strategic Decisions", "Decisões Estratégicas", 4), o('adaptive', "Self-Adapted Models", "Modelo Adaptativo", 8)] },
+                        { id: 'cor_ai', group: 'tech', scored: true,
+                          label: L("Artificial Intelligence", "Inteligência Artificial"),
+                          options: [o('no', "No", "Não", 0), o('experimental', "Experimental", "Experimental", 2), o('transactional', "Transactional", "Transacional", 4), o('core', "Core", "Core", 8)] },
+                        { id: 'cor_cloud', group: 'tech', scored: true,
+                          label: L("Cloud and Automation", "Nuvem e Automação"),
+                          options: [o('no', "No", "Não", 0), o('partial', "Partial Use", "Uso Parcial", 2), o('full_stack', "Full Stack", "Full Stack", 8)] },
+                        { id: 'cor_token', group: 'tech', scored: false,
+                          label: L("Blockchain Token", "Token Blockchain"),
+                          options: [o('no', "No", "Não"), o('supported', "Accepted / Supported", "Aceito/Suportado"), o('generated', "Generated", "Gerado")] }
+                    ]
+                }
+            ];
+
+            // Express route: 9 quick questions for business leaders past the idea stage
+            const EXPRESS = {
+                id: 'express',
+                title: L("Express Assessment", "Avaliação Expressa"),
+                intro: L("Nine quick questions about you and your business.", "Nove perguntas rápidas sobre você e o seu negócio."),
+                questions: [
+                    { id: 'exp_motivation', scored: true,
+                      label: L("You run a business out of", "Você empreende por"),
+                      options: [o('necessity', "Necessity", "Necessidade", 2), o('opportunity', "Opportunity", "Oportunidade", 4)] },
+                    { id: 'exp_relation', scored: true,
+                      label: L("What is your relationship with the company?", "Qual sua relação com a empresa?"),
+                      options: [o('i_work', "I work for the company", "Eu trabalho para a empresa", 0), o('works_for_me', "The company works for me", "A empresa trabalha para mim", 4)] },
+                    { id: 'exp_dedication', scored: true,
+                      label: L("How much time do you dedicate to the business?", "Qual sua dedicação ao negócio?"),
+                      options: [o('full', "Full time", "Tempo integral", 4), o('part', "Part time", "Tempo parcial", 2), o('spare', "Spare time", "Tempo livre", 0)] },
+                    { id: 'exp_customer', scored: true,
+                      label: L("Do you know who your customer is?", "Você sabe quem é seu cliente?"),
+                      options: [o('sure', "Absolutely", "Com certeza", 4), o('somewhat', "More or less", "Mais ou menos", 2), o('unsure', "I'm not sure", "Não tenho certeza", 0)] },
+                    { id: 'exp_competitors', scored: true,
+                      label: L("Do you have a map of your competitors?", "Você tem um mapeamento dos concorrentes?"),
+                      options: [
+                          o('updated', "Constantly updated", "Constantemente atualizado", 4),
+                          o('outdated', "I have one, but it's outdated", "Tenho, mas está desatualizado", 2),
+                          o('none', "I don't have one", "Não tenho", 0),
+                          o('unique', "My business is unique", "Meu negócio é único", 0)
+                      ] },
+                    { id: 'exp_costs', scored: true,
+                      label: L("Do you keep track of the business's costs?", "Você tem um controle dos custos do negócio?"),
+                      options: [o('complete', "Complete", "Completo", 4), o('basic', "Basic", "Básico", 2), o('none', "I don't", "Não tenho", 0)] },
+                    { id: 'exp_time', scored: true,
+                      label: L("Where do you spend most of your time?", "Onde você dedica mais tempo?"),
+                      options: [
+                          o('management', "Management", "Gestão", 4),
+                          o('sales', "Sales", "Vendas", 3),
+                          o('service', "Customer service", "Atendimento", 2),
+                          o('production', "Production", "Produção", 1),
+                          o('ideas', "Ideas", "Ideias", 0) // 4 when the company works for the leader (see expressPoints)
+                      ] },
+                    { id: 'exp_funding', scored: true,
+                      label: L("If you had access to funding, you would...", "Tendo acesso a recurso financeiro, você..."),
+                      options: [
+                          o('sure', "Know exactly where to invest it", "Tenho certeza onde aplicar", 4),
+                          o('project', "Need to put a plan together", "Preciso montar um projeto", 2),
+                          o('lost', "Not know where to start", "Nem sei por onde começar", 0),
+                          o('self', "Invest in myself", "Investiria em mim", 1)
+                      ] },
+                    { id: 'exp_partners', scored: true,
+                      label: L("Partners", "Sócios"),
+                      options: [
+                          o('have', "I have partners", "Tenho", 4),
+                          o('plan', "I plan to have partners", "Pretendo ter", 3),
+                          o('doubt', "I'm not sure it's worth it", "Tenho dúvidas se vale a pena", 1),
+                          o('no', "I don't want partners", "Não quero ter", 2)
+                      ] }
+                ]
+            };
+
+            const EXPRESS_DIMENSIONS = [
+                { id: 'stance', label: L("Entrepreneurial Stance", "Postura Empreendedora"), questions: ['exp_motivation', 'exp_relation', 'exp_dedication', 'exp_partners'] },
+                { id: 'market', label: L("Market Clarity", "Clareza de Mercado"), questions: ['exp_customer', 'exp_competitors'] },
+                { id: 'management', label: L("Management", "Gestão"), questions: ['exp_costs', 'exp_time', 'exp_funding'] }
+            ];
+
+            const EXPRESS_ALERTS = [
+                { id: 'unique_business', when: (v) => v('exp_competitors') === 'unique',
+                  text: L("Every business has competitors, even if they are indirect alternatives or the status quo.",
+                          "Todo negócio tem concorrentes, mesmo que sejam alternativas indiretas ou o status quo.") },
+                { id: 'invest_without_costs', when: (v) => v('exp_funding') === 'sure' && v('exp_costs') === 'none',
+                  text: L("You are sure where to invest, but you don't track the business's costs.",
+                          "Você tem certeza de onde investir, mas não controla os custos do negócio.") },
+                { id: 'operator_trap', when: (v) => v('exp_dedication') === 'full' && v('exp_relation') === 'i_work',
+                  text: L("Working full time for the company: you risk being the operation instead of running it.",
+                          "Trabalhando em tempo integral para a empresa: você corre o risco de ser a operação em vez de geri-la.") },
+                { id: 'ideas_without_control', when: (v) => v('exp_time') === 'ideas' && ['basic', 'none'].includes(v('exp_costs')) && v('exp_relation') !== 'works_for_me',
+                  text: L("Most of your time goes to ideas, with little control over costs and execution.",
+                          "A maior parte do seu tempo vai para ideias, com pouco controle sobre custos e execução.") }
+            ];
+
+            // Express route for any profile while the business is still an idea: reuses three leader questions
+            const reuse = (qId) => EXPRESS.questions.find((q) => q.id === qId);
+            const EXPRESS_IDEA = {
+                id: 'express_idea',
+                title: L("Express Assessment: Idea Stage", "Avaliação Expressa: Fase de Ideia"),
+                intro: L("Five quick questions about your business idea.", "Cinco perguntas rápidas sobre a sua ideia de negócio."),
+                questions: [
+                    reuse('exp_customer'),
+                    reuse('exp_competitors'),
+                    reuse('exp_funding'),
+                    { id: 'idea_planning', scored: true,
+                      label: L("How much have you organized your business?", "O quanto você já organizou seu negócio?"),
+                      options: [
+                          o('documented', "I already have a documented business plan", "Já tenho um plano de negócio documentado", 4),
+                          o('on_paper', "I have some things on paper", "Tenho algumas coisas no papel", 2),
+                          o('thinking', "I've been thinking about it a lot", "Tenho pensado bastante sobre isso", 1),
+                          o('idea_only', "Just the idea for now", "Apenas a ideia por enquanto", 0)
+                      ] },
+                    { id: 'idea_validation', scored: true,
+                      label: L("When you talk to people about your idea...", "Ao conversar com pessoas sobre a sua ideia..."),
+                      options: [
+                          o('want_to_buy', "Many want to be my customers", "Muitos querem ser meus clientes", 4),
+                          o('liked', "Many liked the idea", "Muitos gostaram da ideia", 2),
+                          o('detail_more', "People encouraged me to detail it further", "As pessoas me incentivaram a detalhar mais", 1),
+                          o('silent', "They didn't say anything", "Não disseram nada", 0),
+                          o('nobody', "I haven't talked to anyone", "Não falei com ninguém", 0)
+                      ] }
+                ]
+            };
+
+            // Employees past the idea stage: the Organization Profile survey from the complete route
+            const EXPRESS_EMPLOYEE = {
+                id: 'express_employee',
+                title: L("Express Assessment: Organization Profile", "Avaliação Expressa: Perfil Organizacional"),
+                intro: L("Four questions about how the company is organized. The result is the organization type.",
+                         "Quatro perguntas sobre como a empresa é organizada. O resultado é o tipo de organização."),
+                questions: SECTIONS.find((sec) => sec.id === 'org').questions
+            };
+
+            // Customers past the idea stage
+            const EXPRESS_CUSTOMER = {
+                id: 'express_customer',
+                title: L("Express Assessment: Customer View", "Avaliação Expressa: Visão do Cliente"),
+                intro: L("Four quick questions about your relationship with the company.", "Quatro perguntas rápidas sobre a sua relação com a empresa."),
+                questions: [
+                    { id: 'cust_usage', scored: true,
+                      label: L("Have you used the company's product/service in the last 6 months?", "Você usou o produto/serviço da empresa nos últimos 6 meses?"),
+                      options: [o('yes', "Yes", "Sim", 4), o('no', "No", "Não", 0), o('dont_remember', "I don't remember", "Não lembro", 1)] },
+                    { id: 'cust_purpose', scored: true,
+                      label: L("Is the company's positioning aligned with your purposes?", "O posicionamento da empresa está alinhado aos seus propósitos?"),
+                      options: [o('yes', "Yes", "Sim", 4), o('no', "No", "Não", 0), o('dont_know', "I don't know", "Não sei", 1)] },
+                    { id: 'cust_recommend', scored: true,
+                      label: L("Do you recommend the company's products/services?", "Você recomenda os produtos/serviços da empresa?"),
+                      options: [o('yes', "Yes", "Sim", 4), o('no', "No", "Não", 0), o('for_reward', "When I get something in return", "Quando ganho algo em troca", 2)] },
+                    { id: 'cust_switch', scored: true,
+                      label: L("Would you switch this company for its competitor?", "Você trocaria esta empresa por seu concorrente?"),
+                      options: [
+                          o('also_use', "I use the competitor too", "Uso o concorrente também", 1),
+                          o('yes_easily', "Yes, no problem", "Sim, sem problemas", 0),
+                          o('depends_incentive', "Yes, depending on the incentive", "Sim, dependendo do incentivo", 1),
+                          o('probably_not', "Probably not", "Provavelmente não", 3),
+                          o('no', "No", "Não", 4)
+                      ] }
+                ]
+            };
+
+            const UNIQUE_BUSINESS_ALERT = EXPRESS_ALERTS[0];
+            const EXPRESS_VARIANTS = {
+                leader: { section: EXPRESS, dimensions: EXPRESS_DIMENSIONS, alerts: EXPRESS_ALERTS },
+                employee: { section: EXPRESS_EMPLOYEE, kind: 'orgType', dimensions: [], alerts: [] },
+                customer: {
+                    section: EXPRESS_CUSTOMER,
+                    dimensions: [
+                        { id: 'engagement', label: L("Engagement", "Engajamento"), questions: ['cust_usage', 'cust_recommend'] },
+                        { id: 'loyalty', label: L("Loyalty", "Lealdade"), questions: ['cust_purpose', 'cust_switch'] }
+                    ],
+                    alerts: [
+                        { id: 'recommend_without_use', when: (v) => v('cust_recommend') === 'yes' && ['no', 'dont_remember'].includes(v('cust_usage')),
+                          text: L("You recommend the company without having used it in the last 6 months.",
+                                  "Você recomenda a empresa sem ter usado o produto/serviço nos últimos 6 meses.") },
+                        { id: 'incentive_driven', when: (v) => v('cust_recommend') === 'for_reward' && v('cust_switch') === 'depends_incentive',
+                          text: L("The relationship is driven by incentives rather than by the value delivered.",
+                                  "A relação é sustentada por incentivos, e não pelo valor entregue.") },
+                        { id: 'purpose_not_loyalty', when: (v) => v('cust_purpose') === 'yes' && v('cust_switch') === 'yes_easily',
+                          text: L("Purpose alignment is not turning into loyalty: you would switch without a second thought.",
+                                  "O alinhamento de propósito não está virando lealdade: você trocaria sem pensar duas vezes.") }
+                    ]
+                },
+                idea: {
+                    section: EXPRESS_IDEA,
+                    dimensions: [
+                        { id: 'market', label: L("Market Clarity", "Clareza de Mercado"), questions: ['exp_customer', 'exp_competitors', 'idea_validation'] },
+                        { id: 'readiness', label: L("Readiness", "Preparação"), questions: ['idea_planning', 'exp_funding'] }
+                    ],
+                    alerts: [
+                        UNIQUE_BUSINESS_ALERT,
+                        { id: 'no_conversations', when: (v) => v('idea_validation') === 'nobody',
+                          text: L("Talking to potential customers is the cheapest way to validate an idea before investing in it.",
+                                  "Conversar com potenciais clientes é a forma mais barata de validar uma ideia antes de investir nela.") },
+                        { id: 'customer_unvalidated', when: (v) => v('exp_customer') === 'sure' && ['nobody', 'silent'].includes(v('idea_validation')),
+                          text: L("You are sure about your customer, but the idea hasn't been validated with people yet.",
+                                  "Você tem certeza sobre o seu cliente, mas a ideia ainda não foi validada com pessoas.") },
+                        { id: 'invest_without_plan', when: (v) => v('exp_funding') === 'sure' && v('idea_planning') === 'idea_only',
+                          text: L("You are sure where to invest, but nothing about the business is organized yet.",
+                                  "Você tem certeza de onde investir, mas nada do negócio está organizado ainda.") }
+                    ]
+                }
+            };
+
+            // Idea stage applies to every profile; past it, each profile has its own question set
+            const expressVariant = (role, maturity) => {
+                if (!role || !maturity) return null;
+                if (maturity === 'idea') return 'idea';
+                return { leader: 'leader', employee: 'employee', customer: 'customer' }[role] || null;
+            };
+
+            const QUESTIONS = {};
+            [...SECTIONS, EXPRESS, EXPRESS_IDEA, EXPRESS_CUSTOMER].forEach((s) => s.questions.forEach((q) => { QUESTIONS[q.id] = q; }));
+
+            const ORG_TYPES = [ // VLOOKUP approximate match on the survey total
+                { id: 'traditional', min: 0, points: 0, label: L("Traditional Company", "Tradicional"),
+                  desc: L("Decisions are concentrated in a few people, the owners fund the business and experimentation stays at the product/service level. Stable and predictable, but slower to adapt.",
+                          "As decisões ficam concentradas em poucas pessoas, os donos financiam o negócio e a experimentação fica no nível do produto/serviço. Estável e previsível, mas mais lenta para se adaptar.") },
+                { id: 'startup', min: 8, points: 2, label: L("Startup", "Startup"),
+                  desc: L("Some autonomy and openness to experiment with how value is delivered, usually backed by investors or sales. Fast, but still centered on a small group.",
+                          "Alguma autonomia e abertura para experimentar a forma de entregar valor, normalmente sustentada por investidores ou vendas. Rápida, mas ainda centrada em um grupo pequeno.") },
+                { id: 'collaborative', min: 14, points: 4, label: L("Collaborative", "Colaborativa"),
+                  desc: L("Decisions are spread across the company, management is flatter and experimentation reaches the business model.",
+                          "As decisões são distribuídas pela empresa, a gestão é mais horizontal e a experimentação chega ao modelo de negócio.") },
+                { id: 'hacker', min: 20, points: 8, label: L("Hacker", "Hacker"),
+                  desc: L("The community takes part in decisions and funding, management is self-organized and experimentation reaches the company's purpose. Highly adaptive, typical of exponential organizations.",
+                          "A comunidade participa das decisões e do financiamento, a gestão é auto-organizada e a experimentação chega ao propósito da empresa. Altamente adaptável, típica de organizações exponenciais.") }
+            ];
+            const OCEANS = [
+                { id: 'red', min: 0, points: 0, label: L("Red", "Vermelho") },
+                { id: 'blue', min: 4, points: 4, label: L("Blue", "Azul") }
+            ];
+
+            const WARNINGS = [
+                { id: 'crowdfunding_weak_culture', source: 'mon_crowdfunding', when: (v) => v('tip_culture') === 'weak',
+                  text: L("Crowdfunding with a weak culture might not work.", "Crowdfunding/ICO em ambiente de cultura fraca pode não funcionar.") },
+                { id: 'advertising_vital_ux', source: 'mon_advertising', when: (v) => v('tip_ux') === 'vital',
+                  text: L("The wrong use of advertising could compromise User Experience.", "O uso indevido de propaganda pode prejudicar a experiência do usuário.") },
+                { id: 'transaction_on_search', source: 'mon_transaction', when: (v) => v('cor_focus') === 'search',
+                  text: L("Use of transaction charge on a search platform.", "Uso de custo por transação em plataforma de busca.") },
+                { id: 'monthly_low_outcomes', source: 'mon_monthly', when: (v) => v('tip_outcomes') === 'low',
+                  text: L("Monthly plan with low short-term outcomes for users might not work.", "Plano mensal com baixo retorno de curto prazo pode não funcionar.") },
+                { id: 'premium_not_exclusive', source: 'mon_premium', when: (v) => v('tip_exclusivity') === 'not_relevant',
+                  text: L("Premium access, but exclusivity was defined as 'not relevant'.", "Acesso premium, porém exclusividade foi marcada como 'irrelevante'.") }
+            ];
+
+            const PLATFORM_DELIVERY = ['platform', 'blockchain'];
+            const isPlatform = (answers) => PLATFORM_DELIVERY.includes(answers?.biz_delivery?.value);
+
+            const isVisible = (q, answers) => !q.platformOnly || isPlatform(answers);
+
+            const option = (qId, optId) => (QUESTIONS[qId]?.options || []).find((op) => op.id === optId) || null;
+            const maxPoints = (qId) => Math.max(...QUESTIONS[qId].options.map((op) => op.points));
+
+            function missing(sectionId, answers) {
+                const section = [...SECTIONS, EXPRESS, EXPRESS_IDEA, EXPRESS_EMPLOYEE, EXPRESS_CUSTOMER].find((s) => s.id === sectionId);
+                return section.questions.filter((q) => isVisible(q, answers) && !option(q.id, answers?.[q.id]?.value)).map((q) => q.id);
+            }
+
+            const pickTier = (tiers, total) => tiers.filter((t) => total >= t.min).pop();
+            const pct = (raw, max) => Math.round(Math.max(0, Math.min(1, raw / max)) * 1000) / 10;
+
+            function compute(answers) {
+                answers = answers || {};
+                const v = (qId) => {
+                    const q = QUESTIONS[qId];
+                    if (!q || !isVisible(q, answers)) return null;
+                    return option(qId, answers[qId]?.value) ? answers[qId].value : null;
+                };
+                const p = (qId) => { const op = option(qId, v(qId)); return op ? op.points : 0; };
+                const item = (qId) => ({ id: qId, label: QUESTIONS[qId].label, answer: option(qId, v(qId))?.label || null, points: p(qId), max: maxPoints(qId), skipped: !isVisible(QUESTIONS[qId], answers) });
+                const sum = (items) => items.reduce((acc, it) => acc + it.points, 0);
+
+                // Organization Profile Survey -> organization type
+                const orgTotal = ['org_decisions', 'org_funding', 'org_experimentation', 'org_management'].reduce((acc, id) => acc + p(id), 0);
+                const orgType = pickTier(ORG_TYPES, orgTotal);
+                // Ocean's Color Survey -> blue / red
+                const oceanTotal = ['ocean_space', 'ocean_competitors', 'ocean_demand', 'ocean_value_cost'].reduce((acc, id) => acc + p(id), 0);
+                const ocean = pickTier(OCEANS, oceanTotal);
+
+                // Business -> Exponential Potential
+                const businessItems = [
+                    item('biz_model'),
+                    { id: 'organization', label: L("Organization", "Organização"), answer: orgType.label, points: orgType.points, max: 8 },
+                    item('biz_delivery'),
+                    item('biz_staff'),
+                    item('biz_community'),
+                    item('biz_assets'),
+                    { id: 'ocean', label: L("Ocean's Color", "Cor do Oceano"), answer: ocean.label, points: ocean.points, max: 4 }
+                ];
+                const businessRaw = sum(businessItems);
+                const businessMax = businessItems.reduce((acc, it) => acc + it.max, 0);
+
+                // Tipping -> Tipping Potential
+                const valueW = p('tip_value'), problemW = p('tip_problem'), cultureW = p('tip_culture');
+                const appeal = valueW && problemW && cultureW
+                    ? 32 - (Math.max(valueW, problemW) / Math.min(valueW, problemW)) * cultureW
+                    : 0;
+                const appealMax = 32 - 1 * Math.min(...QUESTIONS.tip_culture.options.map((op) => op.points));
+                const confidenceItems = [item('tip_support'), item('tip_marquee')];
+                const gainItems = [item('tip_outcomes'), item('tip_coendeavor'), item('tip_gamification')];
+                const confidence = sum(confidenceItems), gain = sum(gainItems);
+                const confidenceMax = confidenceItems.reduce((acc, it) => acc + it.max, 0);
+                const gainMax = gainItems.reduce((acc, it) => acc + it.max, 0);
+                const tippingRaw = appeal + confidence + gain;
+                const tippingMax = appealMax + confidenceMax + gainMax;
+
+                // Monetization -> Monetization Factor (2 points per income source without a warning)
+                const warnings = WARNINGS.filter((w) => v(w.source) === 'yes' && w.when(v));
+                const monetizationFactor = 2 * (WARNINGS.length - warnings.length);
+
+                // Coring -> Coring Potential
+                const coringItems = [
+                    item('cor_mediation'), item('cor_market'), item('cor_focus'),
+                    { id: 'monetization', label: L("Monetization Factor", "Fator de Monetização"), answer: null, points: monetizationFactor, max: 2 * WARNINGS.length },
+                    item('cor_dev'), item('cor_api'), item('cor_data'), item('cor_analytics'), item('cor_ai'), item('cor_cloud')
+                ];
+                const coringRaw = sum(coringItems);
+                const coringMax = coringItems.reduce((acc, it) => acc + it.max, 0);
+
+                const pillars = {
+                    exponential: { raw: businessRaw, max: businessMax, pct: pct(businessRaw, businessMax), items: businessItems },
+                    tipping: {
+                        raw: tippingRaw, max: tippingMax, pct: pct(tippingRaw, tippingMax),
+                        subscores: [
+                            { id: 'appeal', label: L("Individual Appeal", "Apelo individual"), hint: L("Value, problem and culture", "Valor, problema e cultura"), points: appeal, max: appealMax, items: [item('tip_value'), item('tip_problem'), item('tip_culture')] },
+                            { id: 'confidence', label: L("User's Level of Confidence", "Nível de confiança dos usuários"), hint: L("Support and marquee network", "Suporte e rede de usuários"), points: confidence, max: confidenceMax, items: confidenceItems },
+                            { id: 'gain', label: L("Sense of Tangible Gain", "Senso de ganho tangível"), hint: L("Outcomes, co-endeavor and gamification", "Retorno, empreendimento e gamificação"), points: gain, max: gainMax, items: gainItems }
+                        ]
+                    },
+                    coring: { raw: coringRaw, max: coringMax, pct: pct(coringRaw, coringMax), items: coringItems, isPlatform: isPlatform(answers) }
+                };
+
+                return {
+                    organization: { total: orgTotal, type: orgType },
+                    ocean: { total: oceanTotal, color: ocean },
+                    warnings,
+                    monetizationFactor,
+                    pillars,
+                    overall: Math.round(((pillars.exponential.pct + pillars.tipping.pct + pillars.coring.pct) / 3) * 10) / 10
+                };
+            }
+
+            function computeExpress(answers, variantId) {
+                answers = answers || {};
+                const variant = EXPRESS_VARIANTS[variantId] || EXPRESS_VARIANTS.leader;
+                if (variant.kind === 'orgType') {
+                    // Result is the organization type from the survey total (max 40), not a percentage
+                    const { organization } = compute(answers);
+                    const max = EXPRESS_EMPLOYEE.questions.reduce((acc, q) => acc + maxPoints(q.id), 0);
+                    return { variant: variantId, kind: 'orgType', organization: { ...organization, max }, dimensions: [], alerts: [] };
+                }
+                const v = (qId) => (option(qId, answers[qId]?.value) ? answers[qId].value : null);
+                const points = (qId) => {
+                    // Ideas count as management time when the company already works for the leader
+                    if (qId === 'exp_time' && v('exp_time') === 'ideas' && v('exp_relation') === 'works_for_me') return 4;
+                    return option(qId, v(qId))?.points || 0;
+                };
+                const dimensions = variant.dimensions.map((d) => {
+                    const items = d.questions.map((qId) => ({ id: qId, label: QUESTIONS[qId].label, answer: option(qId, v(qId))?.label || null, points: points(qId), max: maxPoints(qId) }));
+                    const raw = items.reduce((acc, it) => acc + it.points, 0);
+                    const max = items.reduce((acc, it) => acc + it.max, 0);
+                    return { id: d.id, label: d.label, raw, max, pct: pct(raw, max), items };
+                });
+                // Overall = total points as a share of the combined maximum of all dimensions
+                const raw = dimensions.reduce((acc, d) => acc + d.raw, 0);
+                const max = dimensions.reduce((acc, d) => acc + d.max, 0);
+                return {
+                    variant: variantId,
+                    dimensions,
+                    alerts: variant.alerts.filter((a) => a.when(v)),
+                    raw, max,
+                    overall: pct(raw, max)
+                };
+            }
+
+            const root = typeof window !== 'undefined' ? window : globalThis;
+            root.Edgar9Engine = { SECTIONS, EXPRESS, EXPRESS_IDEA, EXPRESS_EMPLOYEE, EXPRESS_CUSTOMER, EXPRESS_VARIANTS, QUESTIONS, ORG_TYPES, OCEANS, WARNINGS, isPlatform, isVisible, expressVariant, option, missing, compute, computeExpress };
+        })();
+
+        // Reference cases (answers extracted from the E9_*.xlsx case library; scored live by the engine)
+        window.Edgar9Benchmarks = {"Airbnb":{"org_decisions":{"value":"some_people"},"org_funding":{"value":"sales"},"org_experimentation":{"value":"feature"},"org_management":{"value":"flat"},"ocean_space":{"value":"existing"},"ocean_competitors":{"value":"irrelevant"},"ocean_demand":{"value":"existing"},"ocean_value_cost":{"value":"break"},"biz_model":{"value":"ecosystem_driver"},"biz_delivery":{"value":"platform"},"biz_focus":{"value":"wellbeing"},"biz_staff":{"value":"on_demand"},"biz_community":{"value":"global"},"biz_assets":{"value":"leased"},"biz_generation":{"value":"gen_x"},"tip_value":{"value":"timing"},"tip_marquee":{"value":"low"},"tip_outcomes":{"value":"medium"},"tip_problem":{"value":"safety"},"tip_culture":{"value":"diverse"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"training"},"tip_gamification":{"value":"none"},"tip_ux":{"value":"vital"},"tip_exclusivity":{"value":"not_relevant"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"no"},"mon_transaction":{"value":"yes"},"mon_monthly":{"value":"no"},"mon_premium":{"value":"no"},"cor_mediation":{"value":"rules_only"},"cor_market":{"value":"two"},"cor_focus":{"value":"transaction"},"cor_dev":{"value":"agile"},"cor_api":{"value":"no"},"cor_data":{"value":"internal"},"cor_analytics":{"value":"adaptive"},"cor_ai":{"value":"experimental"},"cor_cloud":{"value":"full_stack"}},"Facebook":{"org_decisions":{"value":"some_people"},"org_funding":{"value":"sales"},"org_experimentation":{"value":"delivery_model"},"org_management":{"value":"traditional"},"ocean_space":{"value":"existing"},"ocean_competitors":{"value":"beat"},"ocean_demand":{"value":"existing"},"ocean_value_cost":{"value":"break"},"biz_model":{"value":"ecosystem_driver"},"biz_delivery":{"value":"platform"},"biz_focus":{"value":"communication"},"biz_staff":{"value":"on_demand"},"biz_community":{"value":"global"},"biz_assets":{"value":"leased"},"biz_generation":{"value":"gen_x"},"tip_value":{"value":"social"},"tip_marquee":{"value":"high"},"tip_outcomes":{"value":"medium"},"tip_problem":{"value":"love"},"tip_culture":{"value":"weak"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"orientation"},"tip_gamification":{"value":"marketing"},"tip_ux":{"value":"relevant"},"tip_exclusivity":{"value":"not_relevant"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"yes"},"mon_transaction":{"value":"no"},"mon_monthly":{"value":"no"},"mon_premium":{"value":"no"},"cor_mediation":{"value":"rule_judge"},"cor_market":{"value":"multi"},"cor_focus":{"value":"search"},"cor_dev":{"value":"agile"},"cor_api":{"value":"transaction"},"cor_data":{"value":"available"},"cor_analytics":{"value":"adaptive"},"cor_ai":{"value":"experimental"},"cor_cloud":{"value":"full_stack"}},"Netflix":{"org_decisions":{"value":"everybody"},"org_funding":{"value":"sales"},"org_experimentation":{"value":"feature"},"org_management":{"value":"flat"},"ocean_space":{"value":"unexplored"},"ocean_competitors":{"value":"irrelevant"},"ocean_demand":{"value":"unexplored"},"ocean_value_cost":{"value":"break"},"biz_model":{"value":"omnichannel"},"biz_delivery":{"value":"mobile_app"},"biz_focus":{"value":"entertainment"},"biz_staff":{"value":"employees"},"biz_community":{"value":"global"},"biz_assets":{"value":"own"},"biz_generation":{"value":"gen_x"},"tip_value":{"value":"social"},"tip_marquee":{"value":"high"},"tip_outcomes":{"value":"high"},"tip_problem":{"value":"esteem"},"tip_culture":{"value":"weak"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"content"},"tip_gamification":{"value":"marketing"},"tip_ux":{"value":"strategic"},"tip_exclusivity":{"value":"not_relevant"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"no"},"mon_transaction":{"value":"no"},"mon_monthly":{"value":"yes"},"mon_premium":{"value":"no"},"cor_mediation":{"value":"agnostic"},"cor_market":{"value":"two"},"cor_focus":{"value":"search"},"cor_dev":{"value":"agile"},"cor_api":{"value":"no"},"cor_data":{"value":"internal"},"cor_analytics":{"value":"strategic"},"cor_ai":{"value":"core"},"cor_cloud":{"value":"full_stack"}},"Snapchat":{"org_decisions":{"value":"some_people"},"org_funding":{"value":"investors"},"org_experimentation":{"value":"delivery_model"},"org_management":{"value":"flat"},"ocean_space":{"value":"existing"},"ocean_competitors":{"value":"beat"},"ocean_demand":{"value":"existing"},"ocean_value_cost":{"value":"make"},"biz_model":{"value":"supplier"},"biz_delivery":{"value":"mobile_app"},"biz_focus":{"value":"wellbeing"},"biz_staff":{"value":"on_demand"},"biz_community":{"value":"global"},"biz_assets":{"value":"leased"},"biz_generation":{"value":"gen_y"},"tip_value":{"value":"social"},"tip_marquee":{"value":"high"},"tip_outcomes":{"value":"medium"},"tip_problem":{"value":"love"},"tip_culture":{"value":"diverse"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"content"},"tip_gamification":{"value":"marketing"},"tip_ux":{"value":"relevant"},"tip_exclusivity":{"value":"not_relevant"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"yes"},"mon_transaction":{"value":"no"},"mon_monthly":{"value":"no"},"mon_premium":{"value":"no"},"cor_mediation":{"value":"agnostic"},"cor_market":{"value":"two"},"cor_focus":{"value":"transaction"},"cor_dev":{"value":"agile"},"cor_api":{"value":"no"},"cor_data":{"value":"internal"},"cor_analytics":{"value":"strategic"},"cor_ai":{"value":"experimental"},"cor_cloud":{"value":"full_stack"}},"Uber":{"org_decisions":{"value":"some_people"},"org_funding":{"value":"sales"},"org_experimentation":{"value":"delivery_model"},"org_management":{"value":"flat"},"ocean_space":{"value":"existing"},"ocean_competitors":{"value":"irrelevant"},"ocean_demand":{"value":"existing"},"ocean_value_cost":{"value":"break"},"biz_model":{"value":"ecosystem_driver"},"biz_delivery":{"value":"platform"},"biz_focus":{"value":"wellbeing"},"biz_staff":{"value":"on_demand"},"biz_community":{"value":"global"},"biz_assets":{"value":"leased"},"biz_generation":{"value":"gen_x"},"tip_value":{"value":"timing"},"tip_marquee":{"value":"no"},"tip_outcomes":{"value":"medium"},"tip_problem":{"value":"safety"},"tip_culture":{"value":"diverse"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"training"},"tip_gamification":{"value":"none"},"tip_ux":{"value":"vital"},"tip_exclusivity":{"value":"attraction"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"no"},"mon_transaction":{"value":"yes"},"mon_monthly":{"value":"no"},"mon_premium":{"value":"yes"},"cor_mediation":{"value":"co_responsible"},"cor_market":{"value":"two"},"cor_focus":{"value":"transaction"},"cor_dev":{"value":"agile"},"cor_api":{"value":"no"},"cor_data":{"value":"internal"},"cor_analytics":{"value":"strategic"},"cor_ai":{"value":"experimental"},"cor_cloud":{"value":"full_stack"}},"Snap":{"org_decisions":{"value":"some_people"},"org_funding":{"value":"investors"},"org_experimentation":{"value":"delivery_model"},"org_management":{"value":"flat"},"ocean_space":{"value":"existing"},"ocean_competitors":{"value":"beat"},"ocean_demand":{"value":"existing"},"ocean_value_cost":{"value":"make"},"biz_model":{"value":"omnichannel"},"biz_delivery":{"value":"mobile_app"},"biz_focus":{"value":"entertainment"},"biz_staff":{"value":"employees"},"biz_community":{"value":"global"},"biz_assets":{"value":"leased"},"biz_generation":{"value":"gen_y"},"tip_value":{"value":"social"},"tip_marquee":{"value":"high"},"tip_outcomes":{"value":"low"},"tip_problem":{"value":"love"},"tip_culture":{"value":"strong"},"tip_coendeavor":{"value":"no"},"tip_support":{"value":"content"},"tip_gamification":{"value":"marketing"},"tip_ux":{"value":"vital"},"tip_exclusivity":{"value":"attraction"},"mon_crowdfunding":{"value":"no"},"mon_advertising":{"value":"yes"},"mon_transaction":{"value":"no"},"mon_monthly":{"value":"no"},"mon_premium":{"value":"no"},"cor_mediation":{"value":"agnostic"},"cor_market":{"value":"multi"},"cor_focus":{"value":"search"},"cor_dev":{"value":"agile"},"cor_api":{"value":"no"},"cor_data":{"value":"internal"},"cor_analytics":{"value":"strategic"},"cor_ai":{"value":"transactional"},"cor_cloud":{"value":"partial"}}};
+    </script>
+
+    <script type="text/babel">
+        const { SECTIONS, EXPRESS_VARIANTS, ORG_TYPES, QUESTIONS, compute, computeExpress, missing, isVisible, isPlatform, expressVariant } = window.Edgar9Engine;
+        const MODEL_VERSION = 'edgar9-score-1';
+
+        const translations = {
+            en: {
+                brand: "Edgar9",
+                tagline: "Intelligent Business Architecture",
+                whoAreYou: "Who are you in relation to this business?",
+                whoAreYouDesc: "Context for the report. It does not change the score.",
+                businessName: "Business name",
+                businessNamePlaceholder: "e.g. Acme Inc.",
+                nameAndProfileRequired: "Enter the business name and choose a profile to continue",
+                orgTypeTitle: "Organization type",
+                orgTypeIs: "is a",
+                chooseRoute: "How would you like to start?",
+                chooseRouteDesc: "Express gives a quick snapshot; Complete runs the full Edgar9 model.",
+                routes: {
+                    express: { title: "Express", desc: "A few quick questions tailored to your profile and the business stage (about 3 minutes)." },
+                    complete: { title: "Complete", desc: "The full Edgar9 assessment: organization, ocean, business, tipping, monetization and coring, with benchmarks (about 15 minutes)." }
+                },
+                expressUnavailableTitle: "Express route not available for this profile yet",
+                expressUnavailableDesc: "For businesses past the idea stage, the express questions are currently designed for business leaders. Questions for other profiles are coming soon.",
+                switchToComplete: "Switch to the complete route",
+                expressOverall: "Edgar9 Express Score",
+                expressOverallDesc: "Total points as a percentage of the maximum across all dimensions.",
+                alertsTitle: "Alerts",
+                noAlerts: "No inconsistencies found between your answers.",
+                ideasBonus: "Counts as management: the company works for you",
+                maturityState: "What is the business's current maturity stage?",
+                maturityStateDesc: "Select the stage that best represents your current progress.",
+                roles: {
+                    leader: { title: "Business Leader / Founder", desc: "Setting vision, strategic direction, and execution" },
+                    employee: { title: "Employee / Team Member", desc: "Driving operations, product, or internal execution" },
+                    customer: { title: "Customer / External Evaluator", desc: "Providing outside market or client evaluation" }
+                },
+                maturity: {
+                    idea: { title: "Idea Phase", desc: "Concept formulation & hypothesis testing" },
+                    mvp: { title: "MVP / Prototype", desc: "Testing initial product or service iterations" },
+                    traction: { title: "Traction", desc: "Early paying clients & validated market demand" },
+                    scaleup: { title: "Scale-up", desc: "Scaling revenues, team, and operations" },
+                    operational: { title: "Fully Operational", desc: "Established company with recurring revenues" }
+                },
+                stepOf: "Step", of: "of", completed: "Completed",
+                section: "Section",
+                prev: "Previous",
+                next: "Continue",
+                submit: "Calculate Edgar9 Score",
+                answerAll: "Answer every question to continue",
+                keyboardTip: "Pro-tip: press Enter to advance",
+                notScored: "Not scored",
+                addNote: "+ Add note",
+                notePlaceholder: "Optional notes or context...",
+                groups: {
+                    attraction: "Attraction", retention: "Retention", both: "Attraction and Retention",
+                    market: "Market Intermediation", tech: "Technology Architecture"
+                },
+                orgResult: "Your company is a",
+                oceanResult: "Your ocean is",
+                notPlatformTitle: "Not a platform",
+                notPlatformDesc: "Your Delivery Model is not Platform or Blockchain, so the market intermediation questions (Mediation, Market Model, Main Focus) are skipped and score 0.",
+                liveWarnings: "Monetization warnings so far",
+                pillars: {
+                    exponential: "Exponential Potential",
+                    tipping: "Tipping Potential",
+                    coring: "Coring Potential"
+                },
+                overall: "Edgar9 Score",
+                overallDesc: "Average of the three pillars, each normalized to its maximum.",
+                points: "pts",
+                weight: "weight",
+                summaryTitle: "Your Edgar9 Score",
+                tabs: { score: "Scorecard", bench: "Benchmark", answers: "Answers" },
+                chartTitle: "Pillars vs. benchmark average",
+                chartLegendYou: "Your score",
+                chartLegendAvg: "Benchmark average",
+                tableView: "Show as table",
+                chartView: "Show as chart",
+                warningsTitle: "Monetization warnings",
+                noWarnings: "No conflicts between income sources and the rest of the model.",
+                warningLabel: "Warning",
+                breakdownTitle: "Score breakdown",
+                skipped: "Skipped (not a platform)",
+                benchTitle: "Benchmark against reference cases",
+                benchDesc: "Reference cases from the Edgar9 case library (2016–2017), re-scored with the same rules as your model.",
+                company: "Company",
+                you: "You",
+                answersTitle: "Responses",
+                noAnswer: "Not answered",
+                note: "Note",
+                context: "Context",
+                perspective: "Perspective",
+                stage: "Maturity",
+                shareURL: "Copy Share Link",
+                exportText: "Print / PDF",
+                editAnswers: "Edit Responses",
+                startOver: "Start New Assessment",
+                copiedAlert: "Share link copied to clipboard!"
+            },
+            pt: {
+                brand: "Edgar9",
+                tagline: "Arquitetura Inteligente de Negócios",
+                whoAreYou: "Quem é você em relação a este negócio?",
+                whoAreYouDesc: "Contexto para o relatório. Não altera a pontuação.",
+                businessName: "Nome do negócio",
+                businessNamePlaceholder: "ex.: Empresa X",
+                nameAndProfileRequired: "Informe o nome do negócio e escolha um perfil para avançar",
+                orgTypeTitle: "Tipo de organização",
+                orgTypeIs: "é uma organização do tipo",
+                chooseRoute: "Como você quer começar?",
+                chooseRouteDesc: "A Expressa dá um retrato rápido; a Completa aplica o modelo Edgar9 inteiro.",
+                routes: {
+                    express: { title: "Expressa", desc: "Algumas perguntas rápidas, adaptadas ao seu perfil e ao estágio do negócio (cerca de 3 minutos)." },
+                    complete: { title: "Completa", desc: "A avaliação Edgar9 completa: organização, oceano, negócio, atratividade, monetização e core, com benchmarks (cerca de 15 minutos)." }
+                },
+                expressUnavailableTitle: "Trilha expressa ainda não disponível para este perfil",
+                expressUnavailableDesc: "Para negócios além da fase de ideia, as perguntas expressas são, por enquanto, voltadas a líderes. Perguntas para outros perfis estão a caminho.",
+                switchToComplete: "Mudar para a trilha completa",
+                expressOverall: "Score Edgar9 Expresso",
+                expressOverallDesc: "Total de pontos como percentual do máximo somado de todas as dimensões.",
+                alertsTitle: "Alertas",
+                noAlerts: "Nenhuma inconsistência encontrada entre as suas respostas.",
+                ideasBonus: "Conta como gestão: a empresa trabalha para você",
+                maturityState: "Qual é o estágio atual de maturidade do negócio?",
+                maturityStateDesc: "Selecione a fase que melhor descreve o momento atual.",
+                roles: {
+                    leader: { title: "Líder de Negócios / Fundador", desc: "Definindo visão, direcionamento estratégico e execução" },
+                    employee: { title: "Colaborador / Membro da Equipe", desc: "Conduzindo operações, produto ou execução interna" },
+                    customer: { title: "Cliente / Avaliador Externo", desc: "Oferecendo perspectiva de cliente ou mercado externo" }
+                },
+                maturity: {
+                    idea: { title: "Fase de Ideia", desc: "Formulação de conceito e teste de hipóteses" },
+                    mvp: { title: "MVP / Protótipo", desc: "Testando versões iniciais do produto ou serviço" },
+                    traction: { title: "Tração", desc: "Primeiros clientes pagantes e demanda validada" },
+                    scaleup: { title: "Escala (Scale-up)", desc: "Acelerando receitas, equipe e alcance de mercado" },
+                    operational: { title: "Totalmente Operacional", desc: "Empresa consolidada com receitas recorrentes" }
+                },
+                stepOf: "Etapa", of: "de", completed: "Concluído",
+                section: "Seção",
+                prev: "Anterior",
+                next: "Avançar",
+                submit: "Calcular Score Edgar9",
+                answerAll: "Responda todas as perguntas para avançar",
+                keyboardTip: "Dica: pressione Enter para avançar",
+                notScored: "Sem pontuação",
+                addNote: "+ Adicionar observação",
+                notePlaceholder: "Observações ou contexto (opcional)...",
+                groups: {
+                    attraction: "Atração", retention: "Retenção", both: "Atração e Retenção",
+                    market: "Intermediação de Mercado", tech: "Arquitetura de Tecnologia"
+                },
+                orgResult: "Seu empreendimento é",
+                oceanResult: "Seu oceano é",
+                notPlatformTitle: "Não é uma plataforma",
+                notPlatformDesc: "Seu Modelo de Entrega não é Plataforma nem Blockchain, então as perguntas de intermediação de mercado (Mediação, Modelo de Mercado, Foco Principal) são puladas e valem 0.",
+                liveWarnings: "Alertas de monetização até agora",
+                pillars: {
+                    exponential: "Potencial Exponencial",
+                    tipping: "Score de Atratividade",
+                    coring: "Score de Consistência"
+                },
+                overall: "Score Edgar9",
+                overallDesc: "Média dos três pilares, cada um normalizado pelo seu máximo.",
+                points: "pts",
+                weight: "peso",
+                summaryTitle: "Seu Score Edgar9",
+                tabs: { score: "Scorecard", bench: "Benchmark", answers: "Respostas" },
+                chartTitle: "Pilares vs. média do benchmark",
+                chartLegendYou: "Seu score",
+                chartLegendAvg: "Média do benchmark",
+                tableView: "Ver como tabela",
+                chartView: "Ver como gráfico",
+                warningsTitle: "Alertas de monetização",
+                noWarnings: "Nenhum conflito entre as fontes de receita e o restante do modelo.",
+                warningLabel: "Alerta",
+                breakdownTitle: "Detalhamento da pontuação",
+                skipped: "Pulada (não é plataforma)",
+                benchTitle: "Benchmark com casos de referência",
+                benchDesc: "Casos de referência da biblioteca Edgar9 (2016–2017), recalculados com as mesmas regras do seu modelo.",
+                company: "Empresa",
+                you: "Você",
+                answersTitle: "Respostas",
+                noAnswer: "Sem resposta",
+                note: "Observação",
+                context: "Contexto",
+                perspective: "Perspectiva",
+                stage: "Maturidade",
+                shareURL: "Copiar Link",
+                exportText: "Imprimir / PDF",
+                editAnswers: "Editar Respostas",
+                startOver: "Nova Avaliação",
+                copiedAlert: "Link de compartilhamento copiado!"
+            }
+        };
+
+        // First release ships the express route only. Set to true to show the route choice (Express / Complete) again.
+        const ENABLE_COMPLETE_ROUTE = false;
+        const DEFAULT_ROUTE = ENABLE_COMPLETE_ROUTE ? '' : 'express';
+        const FIRST_STEP = ENABLE_COMPLETE_ROUTE ? 0 : 1; // step 0 is the route choice
+
+        const PILLAR_KEYS = ['exponential', 'tipping', 'coring'];
+        const BENCHMARK_RESULTS = Object.entries(window.Edgar9Benchmarks).map(([name, answers]) => ({ name, result: compute(answers) }));
+        const BENCHMARK_AVG = Object.fromEntries(PILLAR_KEYS.map((k) => [k,
+            Math.round(BENCHMARK_RESULTS.reduce((acc, b) => acc + b.result.pillars[k].pct, 0) / BENCHMARK_RESULTS.length * 10) / 10]));
+
+        const fmt = (n) => (Math.round(n * 10) / 10).toString();
+        const encodePayload = (obj) => btoa(unescape(encodeURIComponent(JSON.stringify(obj))));
+        const decodePayload = (str) => JSON.parse(decodeURIComponent(escape(atob(str))));
+        const isScoreModel = (data) => data && data.version === MODEL_VERSION && data.answers && typeof data.answers === 'object';
+
+        const copyText = (text) => {
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+        };
+
+        function ProgressBar({ value, color }) {
+            return (
+                <div className="h-2 w-full rounded-full bg-brandBorder/30 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: color || '#A8603A' }}></div>
+                </div>
+            );
+        }
+
+        // Horizontal bar chart: one series (your pillar %) with a benchmark-average tick per row.
+        function PillarChart({ result, t }) {
+            const [hover, setHover] = React.useState(null);
+            const [asTable, setAsTable] = React.useState(false);
+            const rowH = 56, labelW = 170, plotW = 460, padR = 56, top = 8;
+            const width = labelW + plotW + padR, height = top + PILLAR_KEYS.length * rowH + 28;
+            const x = (v) => labelW + (v / 100) * plotW;
+
+            return (
+                <div className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                            <h3 className="font-extrabold text-brandDark text-base">{t.chartTitle}</h3>
+                            <div className="flex items-center gap-4 mt-2 text-xs text-brandDark/70">
+                                <span className="flex items-center gap-1.5"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#A8603A' }}></span>{t.chartLegendYou}</span>
+                                <span className="flex items-center gap-1.5"><span className="inline-block w-0.5 h-3.5" style={{ background: '#3E4039' }}></span>{t.chartLegendAvg}</span>
+                            </div>
+                        </div>
+                        <button onClick={() => setAsTable(!asTable)} className="text-xs font-bold text-brandTerracotta hover:text-brandDark no-print">
+                            {asTable ? t.chartView : t.tableView}
+                        </button>
+                    </div>
+
+                    {asTable ? (
+                        <table className="w-full text-sm mt-4">
+                            <thead>
+                                <tr className="text-left text-xs uppercase tracking-wider text-brandDark/60">
+                                    <th className="py-2 font-bold"></th>
+                                    <th className="py-2 font-bold text-right">{t.chartLegendYou}</th>
+                                    <th className="py-2 font-bold text-right">{t.chartLegendAvg}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {PILLAR_KEYS.map((k) => (
+                                    <tr key={k} className="border-t border-brandBorder/30">
+                                        <td className="py-2 font-semibold">{t.pillars[k]}</td>
+                                        <td className="py-2 text-right tabular-nums">{fmt(result.pillars[k].pct)}%</td>
+                                        <td className="py-2 text-right tabular-nums">{fmt(BENCHMARK_AVG[k])}%</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <div className="relative mt-3 overflow-x-auto">
+                            <svg viewBox={`0 0 ${width} ${height}`} className="w-full min-w-[480px]" role="img" aria-label={t.chartTitle}>
+                                {[0, 25, 50, 75, 100].map((g) => (
+                                    <g key={g}>
+                                        <line x1={x(g)} x2={x(g)} y1={top} y2={height - 24} stroke="#BFBBB0" strokeOpacity="0.45" strokeWidth="1" />
+                                        <text x={x(g)} y={height - 8} textAnchor="middle" fontSize="11" fill="#3E4039" fillOpacity="0.6">{g}%</text>
+                                    </g>
+                                ))}
+                                {PILLAR_KEYS.map((k, i) => {
+                                    const y = top + i * rowH + 14, barH = 24;
+                                    const val = result.pillars[k].pct, avg = BENCHMARK_AVG[k];
+                                    const w = Math.max(0, x(val) - labelW);
+                                    return (
+                                        <g key={k} onMouseEnter={() => setHover(k)} onMouseLeave={() => setHover(null)} style={{ cursor: 'default' }}>
+                                            <rect x="0" y={y - 12} width={width} height={rowH - 4} fill={hover === k ? '#F2EAD0' : 'transparent'} fillOpacity="0.6" />
+                                            <text x={labelW - 12} y={y + barH / 2 + 4} textAnchor="end" fontSize="13" fontWeight="600" fill="#3E4039">{t.pillars[k]}</text>
+                                            {w > 0 && (
+                                                <path d={`M${labelW},${y} h${Math.max(0, w - 4)} a4,4 0 0 1 4,4 v${barH - 8} a4,4 0 0 1 -4,4 h-${Math.max(0, w - 4)} z`} fill="#A8603A" />
+                                            )}
+                                            <line x1={x(avg)} x2={x(avg)} y1={y - 5} y2={y + barH + 5} stroke="#3E4039" strokeWidth="2" />
+                                            <text x={Math.max(x(val), x(avg)) + 8} y={y + barH / 2 + 4} fontSize="12" fontWeight="700" fill="#3E4039">{fmt(val)}%</text>
+                                        </g>
+                                    );
+                                })}
+                            </svg>
+                            {hover && (
+                                <div className="absolute right-2 top-2 bg-brandDark text-brandCream text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none">
+                                    <div className="font-bold">{t.pillars[hover]}</div>
+                                    <div>{t.chartLegendYou}: {fmt(result.pillars[hover].pct)}% ({fmt(result.pillars[hover].raw)}/{result.pillars[hover].max} {t.points})</div>
+                                    <div>{t.chartLegendAvg}: {fmt(BENCHMARK_AVG[hover])}%</div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function BreakdownRows({ items, lang, t }) {
+            return (
+                <ul className="divide-y divide-brandBorder/30">
+                    {items.map((it) => (
+                        <li key={it.id} className="py-2 flex items-start justify-between gap-3 text-xs">
+                            <div className="min-w-0">
+                                <div className="font-semibold text-brandDark">{it.label[lang]}</div>
+                                <div className="text-brandDark/60">
+                                    {it.skipped ? t.skipped : (it.answer ? it.answer[lang] : (it.id === 'monetization' ? '' : t.noAnswer))}
+                                </div>
+                            </div>
+                            <div className="tabular-nums font-bold text-brandDark whitespace-nowrap">
+                                {it.max === null
+                                    ? <span className="text-brandDark/60 font-medium">{t.weight} {fmt(it.points)}</span>
+                                    : <>{fmt(it.points)}<span className="text-brandDark/50 font-medium">/{it.max}</span></>}
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            );
+        }
+
+        function App() {
+            const [lang, setLang] = React.useState('en');
+            const t = translations[lang];
+
+            const [route, setRoute] = React.useState(DEFAULT_ROUTE); // 'express' | 'complete'
+            const [businessName, setBusinessName] = React.useState('');
+            const [role, setRole] = React.useState('');
+            const [maturity, setMaturity] = React.useState('');
+            // Answers structure: { [questionId]: { value: optionId, note: "" } }
+            const [answers, setAnswers] = React.useState({});
+            const [openNotes, setOpenNotes] = React.useState({});
+
+            const [stepIndex, setStepIndex] = React.useState(FIRST_STEP);
+            const [isCompleted, setIsCompleted] = React.useState(false);
+            const [toastMessage, setToastMessage] = React.useState('');
+            const [activeTab, setActiveTab] = React.useState('score');
+
+            const isExpress = route === 'express';
+            const variant = expressVariant(role, maturity);
+            const expressEligible = !!variant;
+            const routeSections = isExpress ? (variant ? [EXPRESS_VARIANTS[variant].section] : [EXPRESS_VARIANTS.leader.section]) : SECTIONS;
+            const totalSteps = 3 + routeSections.length;
+            const currentSection = stepIndex >= 3 ? routeSections[stepIndex - 3] : null;
+            const result = React.useMemo(() => compute(answers), [answers]);
+            const expressResult = React.useMemo(() => computeExpress(answers, variant), [answers, variant]);
+
+            const showToast = (msg) => {
+                setToastMessage(msg);
+                setTimeout(() => setToastMessage(''), 3500);
+            };
+
+            const selectOption = (qId, optId) => {
+                setAnswers((prev) => ({ ...prev, [qId]: { ...(prev[qId] || { note: '' }), value: optId } }));
+            };
+
+            const setNote = (qId, note) => {
+                setAnswers((prev) => ({ ...prev, [qId]: { ...(prev[qId] || { value: null }), note } }));
+            };
+
+            const canAdvance = () => {
+                if (stepIndex === 0) return !!route;
+                if (stepIndex === 1) return !!businessName.trim() && !!role;
+                if (stepIndex === 2) return !!maturity;
+                if (isExpress && !expressEligible) return false;
+                return missing(currentSection.id, answers).length === 0;
+            };
+
+            const loadModel = (data) => {
+                setRoute(data.route === 'express' ? 'express' : 'complete');
+                setBusinessName(typeof data.businessName === 'string' ? data.businessName : '');
+                setRole(data.role || 'leader');
+                setMaturity(data.maturity || 'idea');
+                setAnswers(data.answers || {});
+                if (data.lang && translations[data.lang]) setLang(data.lang);
+                setIsCompleted(true);
+            };
+
+            // Share links carry the whole assessment as a base64 payload in ?id=; nothing is stored anywhere else
+            React.useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const payload = params.get('id') || window.location.hash.replace('#', '');
+                if (!payload) return;
+                try {
+                    const decoded = decodePayload(payload);
+                    if (isScoreModel(decoded)) loadModel(decoded);
+                } catch (e) {
+                    console.warn("Could not decode URL model payload:", e);
+                }
+            }, []);
+
+            const modelData = () => ({ version: MODEL_VERSION, route, businessName: businessName.trim(), role, maturity, answers, lang });
+
+            const handleNext = () => {
+                if (!canAdvance()) return;
+                if (stepIndex < totalSteps - 1) {
+                    setStepIndex(stepIndex + 1);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+
+                setActiveTab('score');
+                setIsCompleted(true);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const handlePrev = () => {
+                if (stepIndex > FIRST_STEP) setStepIndex(stepIndex - 1);
+            };
+
+            // Keyboard navigation listener (Enter to next)
+            React.useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (isCompleted || e.key !== 'Enter' || e.shiftKey) return;
+                    if (document.activeElement && document.activeElement.tagName === 'TEXTAREA') return;
+                    e.preventDefault();
+                    handleNext();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [stepIndex, route, role, maturity, answers, isCompleted]);
+
+            const handleCopyShareLink = () => {
+                let shareUrl = window.location.origin + window.location.pathname;
+                try {
+                    if (window.location.href && !window.location.href.startsWith('blob:')) {
+                        shareUrl = window.location.href.split('?')[0].split('#')[0];
+                    }
+                } catch (e) {
+                    console.warn("Could not read location href:", e);
+                }
+
+                shareUrl += `?id=${encodeURIComponent(encodePayload(modelData()))}`;
+                copyText(shareUrl);
+                showToast(t.copiedAlert);
+            };
+
+            const startOver = () => {
+                setRoute(DEFAULT_ROUTE); setBusinessName(''); setRole(''); setMaturity(''); setAnswers({}); setOpenNotes({});
+                setStepIndex(FIRST_STEP); setIsCompleted(false); setActiveTab('score');
+                try { window.history.replaceState(null, '', window.location.pathname); } catch (e) { /* ignore */ }
+            };
+
+            const renderOptionCard = (selected, onClick, title, desc, key) => (
+                <button
+                    key={key}
+                    onClick={onClick}
+                    className={`text-left p-4 rounded-xl border-2 transition-all ${
+                        selected ? 'border-brandTerracotta bg-brandRose/10 shadow-md' : 'border-brandBorder/60 bg-white hover:border-brandTerracotta/60'
+                    }`}
+                >
+                    <h3 className="font-bold text-brandDark text-base">{title}</h3>
+                    <p className="text-xs text-brandDark/70 mt-1">{desc}</p>
+                </button>
+            );
+
+            const renderQuestion = (q) => {
+                const current = answers[q.id] || {};
+                const noteOpen = openNotes[q.id] || !!current.note;
+                return (
+                    <div key={q.id} className="py-5 border-b border-brandBorder/30 last:border-b-0">
+                        <div className="flex items-start justify-between gap-3">
+                            <div>
+                                <h3 className="font-bold text-brandDark text-base">{q.label[lang]}</h3>
+                                {(q.hint || q.ref) && (
+                                    <p className="text-[11px] text-brandDark/50 mt-0.5">{q.hint ? q.hint[lang] : q.ref}</p>
+                                )}
+                            </div>
+                            {!q.scored && (
+                                <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-brandBorder/30 text-brandDark/60">{t.notScored}</span>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3" role="radiogroup" aria-label={q.label[lang]}>
+                            {q.options.map((op) => {
+                                const selected = current.value === op.id;
+                                return (
+                                    <button
+                                        key={op.id}
+                                        role="radio"
+                                        aria-checked={selected}
+                                        onClick={() => selectOption(q.id, op.id)}
+                                        className={`px-3.5 py-2 rounded-xl border text-sm font-semibold transition-all custom-ring ${
+                                            selected
+                                                ? 'bg-brandTerracotta border-brandTerracotta text-white shadow'
+                                                : 'bg-white border-brandBorder text-brandDark hover:border-brandTerracotta'
+                                        }`}
+                                    >
+                                        {op.label[lang]}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {noteOpen ? (
+                            <textarea
+                                rows="2"
+                                value={current.note || ''}
+                                onChange={(e) => setNote(q.id, e.target.value)}
+                                placeholder={t.notePlaceholder}
+                                className="mt-3 w-full p-3 rounded-xl border border-brandBorder bg-white text-brandDark focus:border-brandTerracotta custom-ring text-sm resize-none shadow-inner"
+                            ></textarea>
+                        ) : (
+                            <button onClick={() => setOpenNotes({ ...openNotes, [q.id]: true })} className="mt-2 text-xs font-semibold text-brandDark/50 hover:text-brandTerracotta">
+                                {t.addNote}
+                            </button>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderSection = (section) => {
+                const visible = section.questions.filter((q) => isVisible(q, answers));
+                const groups = [];
+                visible.forEach((q) => {
+                    const g = q.group || '';
+                    if (!groups.length || groups[groups.length - 1].id !== g) groups.push({ id: g, questions: [] });
+                    groups[groups.length - 1].questions.push(q);
+                });
+                const sectionDone = missing(section.id, answers).length === 0;
+
+                return (
+                    <div key={section.id} className="card-enter">
+                        <span className="text-xs font-extrabold uppercase tracking-wider text-brandTerracotta">
+                            {isExpress ? t.routes.express.title : `${t.section} ${stepIndex - 2} / ${SECTIONS.length}`}
+                        </span>
+                        <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark mt-2">{section.title[lang]}</h2>
+                        <p className="text-sm text-brandDark/70 mt-1">{section.intro[lang]}</p>
+                        {section.ref && <p className="text-[11px] text-brandDark/50 mt-1">{section.ref}</p>}
+
+                        {section.id === 'coring' && !isPlatform(answers) && (
+                            <div className="mt-4 p-4 rounded-xl bg-brandCream border border-brandBorder text-sm text-brandDark">
+                                <strong>ⓘ {t.notPlatformTitle}.</strong> {t.notPlatformDesc}
+                            </div>
+                        )}
+
+                        <div className="mt-2">
+                            {groups.map((g) => (
+                                <div key={g.id || 'default'}>
+                                    {g.id && <h4 className="mt-6 text-xs font-extrabold uppercase tracking-wider text-brandDark/60">{t.groups[g.id]}</h4>}
+                                    {g.questions.map(renderQuestion)}
+                                </div>
+                            ))}
+                        </div>
+
+                        {section.id === 'org' && sectionDone && (
+                            <div className="mt-4 p-4 rounded-xl bg-brandRose/10 border border-brandRose/40 text-sm">
+                                {t.orgResult}: <strong>{result.organization.type.label[lang]}</strong>
+                                <span className="text-brandDark/60"> ({result.organization.total} {t.points})</span>
+                            </div>
+                        )}
+                        {section.id === 'ocean' && sectionDone && (
+                            <div className="mt-4 p-4 rounded-xl bg-brandRose/10 border border-brandRose/40 text-sm">
+                                {t.oceanResult}: <strong>{result.ocean.color.label[lang]}</strong>
+                                <span className="text-brandDark/60"> ({result.ocean.total} {t.points})</span>
+                            </div>
+                        )}
+                        {section.id === 'monetization' && result.warnings.length > 0 && (
+                            <div className="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-sm space-y-1">
+                                <div className="font-bold text-amber-900">⚠ {t.liveWarnings}</div>
+                                {result.warnings.map((w) => <div key={w.id} className="text-amber-900">{w.text[lang]}</div>)}
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const renderAnswersReport = () => (
+                <div className="bg-white p-8 md:p-10 rounded-2xl border border-brandBorder/60 shadow-sm space-y-8 text-brandDark print-card">
+                    <div className="border-b border-brandBorder pb-4 flex justify-between items-start flex-wrap gap-2">
+                        <h3 className="text-xl font-extrabold">{t.answersTitle}{businessName.trim() ? ` · ${businessName.trim()}` : ''}</h3>
+                        <div className="text-xs text-brandDark/70 text-right">
+                            <div><strong>{t.perspective}:</strong> {t.roles[role]?.title || '—'}</div>
+                            <div><strong>{t.stage}:</strong> {t.maturity[maturity]?.title || '—'}</div>
+                        </div>
+                    </div>
+                    {routeSections.map((s) => (
+                        <div key={s.id} className="space-y-2">
+                            <h4 className="font-bold text-xs text-brandTerracotta uppercase tracking-wider">{s.title[lang]}</h4>
+                            <div className="divide-y divide-brandBorder/30 bg-brandCream/30 rounded-xl border border-brandBorder/30 px-4">
+                                {s.questions.filter((q) => isVisible(q, answers)).map((q) => {
+                                    const a = answers[q.id] || {};
+                                    const op = QUESTIONS[q.id].options.find((x) => x.id === a.value);
+                                    return (
+                                        <div key={q.id} className="py-2.5 text-sm">
+                                            <div className="flex justify-between gap-3">
+                                                <span className="text-brandDark/70">{q.label[lang]}</span>
+                                                <span className="font-semibold text-right">{op ? op.label[lang] : <em className="text-brandDark/40">{t.noAnswer}</em>}</span>
+                                            </div>
+                                            {a.note && <p className="mt-1 text-xs text-brandDark/80 whitespace-pre-wrap"><strong>{t.note}:</strong> {a.note}</p>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            const renderBenchmark = () => {
+                const rows = [...BENCHMARK_RESULTS.map((b) => ({ name: b.name, result: b.result, you: false })), { name: businessName.trim() ? `${businessName.trim()} (${t.you})` : t.you, result, you: true }]
+                    .sort((a, b) => b.result.overall - a.result.overall);
+                return (
+                    <div className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                        <h3 className="font-extrabold text-brandDark text-base">{t.benchTitle}</h3>
+                        <p className="text-xs text-brandDark/60 mt-1">{t.benchDesc}</p>
+                        <div className="overflow-x-auto mt-4">
+                            <table className="w-full text-sm min-w-[560px]">
+                                <thead>
+                                    <tr className="text-left text-xs uppercase tracking-wider text-brandDark/60">
+                                        <th className="py-2 pr-3 font-bold">{t.company}</th>
+                                        {PILLAR_KEYS.map((k) => <th key={k} className="py-2 px-3 font-bold">{t.pillars[k]}</th>)}
+                                        <th className="py-2 pl-3 font-bold text-right">{t.overall}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {rows.map((r) => (
+                                        <tr key={r.you ? '__you' : r.name} className={`border-t border-brandBorder/30 ${r.you ? 'bg-brandRose/15 font-bold' : ''}`}>
+                                            <td className="py-2.5 pr-3">{r.name}</td>
+                                            {PILLAR_KEYS.map((k) => (
+                                                <td key={k} className="py-2.5 px-3">
+                                                    <div className="flex items-center gap-2" title={`${fmt(r.result.pillars[k].raw)}/${r.result.pillars[k].max} ${t.points}`}>
+                                                        <div className="w-20"><ProgressBar value={r.result.pillars[k].pct} color={r.you ? '#A8603A' : '#3E4039'} /></div>
+                                                        <span className="tabular-nums text-xs">{fmt(r.result.pillars[k].pct)}%</span>
+                                                    </div>
+                                                </td>
+                                            ))}
+                                            <td className="py-2.5 pl-3 text-right tabular-nums">{fmt(r.result.overall)}%</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderOrgTypeCard = () => {
+                const org = expressResult.organization;
+                const bands = ORG_TYPES.map((band, i) => ({ ...band, max: i < ORG_TYPES.length - 1 ? ORG_TYPES[i + 1].min - 1 : org.max }));
+                const idx = bands.findIndex((b) => b.id === org.type.id);
+                const band = bands[idx];
+                const within = band.max > band.min ? (org.total - band.min) / (band.max - band.min) : 0;
+                const marker = ((idx + Math.min(1, Math.max(0, within))) / bands.length) * 100;
+                return (
+                    <div className="bg-white/95 p-6 md:p-8 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                        <div className="text-xs font-extrabold uppercase tracking-wider text-brandTerracotta">{t.orgTypeTitle}</div>
+                        <h3 className="text-2xl md:text-3xl font-extrabold text-brandDark mt-2">{businessName.trim()}</h3>
+                        <div className="mt-1 text-lg font-bold text-brandDark">
+                            {t.orgTypeIs} <span className="text-brandTerracotta">{org.type.label[lang]}</span>
+                            <span className="text-sm font-medium text-brandDark/60 tabular-nums"> · {org.total} / {org.max} {t.points}</span>
+                        </div>
+                        <p className="text-sm text-brandDark/80 mt-3 leading-relaxed max-w-2xl">{org.type.desc[lang]}</p>
+
+                        <div className="mt-8" role="img" aria-label={`${org.type.label[lang]}: ${org.total} ${t.points}`}>
+                            <div className="relative h-6">
+                                <div className="absolute -translate-x-1/2 flex flex-col items-center" style={{ left: `${marker}%` }}>
+                                    <span className="text-[11px] font-bold text-brandDark tabular-nums">{org.total}</span>
+                                    <span className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[7px] border-l-transparent border-r-transparent border-t-brandDark"></span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-0.5">
+                                {bands.map((b) => (
+                                    <div key={b.id} className={`h-3 first:rounded-l-full last:rounded-r-full ${b.id === org.type.id ? 'bg-[#A8603A]' : 'bg-brandBorder/40'}`}></div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-4 gap-0.5 mt-2">
+                                {bands.map((b) => (
+                                    <div key={b.id} className="text-center">
+                                        <div className={`text-xs font-bold ${b.id === org.type.id ? 'text-brandDark' : 'text-brandDark/60'}`}>{b.label[lang]}</div>
+                                        <div className="text-[11px] text-brandDark/50 tabular-nums">{b.id === 'hacker' ? `${b.min}+` : `${b.min}–${b.max}`} {t.points}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderExpressScorecard = () => (
+                <div className="space-y-6">
+                    <div className={`grid grid-cols-1 gap-4 ${expressResult.dimensions.length === 2 ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
+                        <div className="bg-brandDark text-brandCream p-6 rounded-2xl shadow-sm print-card">
+                            <div className="text-xs font-extrabold uppercase tracking-wider text-brandRose">{t.expressOverall}</div>
+                            <div className="text-5xl font-extrabold mt-2 tabular-nums">{fmt(expressResult.overall)}<span className="text-2xl">%</span></div>
+                            <p className="text-xs text-brandCream/70 mt-2 tabular-nums">{fmt(expressResult.raw)} / {expressResult.max} {t.points}. {t.expressOverallDesc}</p>
+                        </div>
+                        {expressResult.dimensions.map((d) => (
+                            <div key={d.id} className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                <div className="text-xs font-extrabold uppercase tracking-wider text-brandTerracotta">{d.label[lang]}</div>
+                                <div className="text-4xl font-extrabold text-brandDark mt-2 tabular-nums">{fmt(d.pct)}<span className="text-xl">%</span></div>
+                                <div className="text-xs text-brandDark/60 mt-1 mb-3 tabular-nums">{fmt(d.raw)} / {d.max} {t.points}</div>
+                                <ProgressBar value={d.pct} />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                        <h3 className="font-extrabold text-brandDark text-base">{t.alertsTitle}</h3>
+                        {expressResult.alerts.length === 0 ? (
+                            <p className="text-sm text-brandDark/70 mt-2">✓ {t.noAlerts}</p>
+                        ) : (
+                            <ul className="mt-3 space-y-2">
+                                {expressResult.alerts.map((a) => (
+                                    <li key={a.id} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-sm text-amber-900">
+                                        <span aria-hidden="true">⚠</span>
+                                        <span><strong>{t.warningLabel}:</strong> {a.text[lang]}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="font-extrabold text-brandDark text-base mb-3">{t.breakdownTitle}</h3>
+                        <div className={`grid grid-cols-1 gap-4 ${expressResult.dimensions.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-3'}`}>
+                            {expressResult.dimensions.map((d) => (
+                                <div key={d.id} className="bg-white/95 p-5 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                    <div className="flex justify-between items-baseline">
+                                        <h4 className="font-bold text-sm text-brandTerracotta">{d.label[lang]}</h4>
+                                        <span className="text-xs font-bold tabular-nums">{fmt(d.raw)}/{d.max}</span>
+                                    </div>
+                                    <BreakdownRows
+                                        items={d.items.map((it) => it.id === 'exp_time' && answers.exp_time?.value === 'ideas' && it.points > 0
+                                            ? { ...it, answer: { en: `${it.answer.en} · ${translations.en.ideasBonus}`, pt: `${it.answer.pt} · ${translations.pt.ideasBonus}` } }
+                                            : it)}
+                                        lang={lang}
+                                        t={t}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderScorecard = () => (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-brandDark text-brandCream p-6 rounded-2xl shadow-sm print-card">
+                            <div className="text-xs font-extrabold uppercase tracking-wider text-brandRose">{t.overall}</div>
+                            <div className="text-5xl font-extrabold mt-2 tabular-nums">{fmt(result.overall)}<span className="text-2xl">%</span></div>
+                            <p className="text-xs text-brandCream/70 mt-2">{t.overallDesc}</p>
+                        </div>
+                        {PILLAR_KEYS.map((k) => {
+                            const pl = result.pillars[k];
+                            return (
+                                <div key={k} className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                    <div className="text-xs font-extrabold uppercase tracking-wider text-brandTerracotta">{t.pillars[k]}</div>
+                                    <div className="text-4xl font-extrabold text-brandDark mt-2 tabular-nums">{fmt(pl.pct)}<span className="text-xl">%</span></div>
+                                    <div className="text-xs text-brandDark/60 mt-1 mb-3 tabular-nums">{fmt(pl.raw)} / {pl.max} {t.points}</div>
+                                    <ProgressBar value={pl.pct} />
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <PillarChart result={result} t={t} />
+
+                    <div className="bg-white/95 p-6 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                        <h3 className="font-extrabold text-brandDark text-base">{t.warningsTitle}</h3>
+                        {result.warnings.length === 0 ? (
+                            <p className="text-sm text-brandDark/70 mt-2">✓ {t.noWarnings}</p>
+                        ) : (
+                            <ul className="mt-3 space-y-2">
+                                {result.warnings.map((w) => (
+                                    <li key={w.id} className="flex items-start gap-2 p-3 rounded-xl bg-amber-50 border border-amber-300 text-sm text-amber-900">
+                                        <span aria-hidden="true">⚠</span>
+                                        <span><strong>{t.warningLabel}:</strong> {w.text[lang]}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="font-extrabold text-brandDark text-base mb-3">{t.breakdownTitle}</h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="bg-white/95 p-5 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-bold text-sm text-brandTerracotta">{t.pillars.exponential}</h4>
+                                    <span className="text-xs font-bold tabular-nums">{fmt(result.pillars.exponential.raw)}/{result.pillars.exponential.max}</span>
+                                </div>
+                                <BreakdownRows items={result.pillars.exponential.items} lang={lang} t={t} />
+                            </div>
+                            <div className="bg-white/95 p-5 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-bold text-sm text-brandTerracotta">{t.pillars.tipping}</h4>
+                                    <span className="text-xs font-bold tabular-nums">{fmt(result.pillars.tipping.raw)}/{result.pillars.tipping.max}</span>
+                                </div>
+                                {result.pillars.tipping.subscores.map((s) => (
+                                    <div key={s.id} className="mt-3">
+                                        <div className="flex justify-between items-baseline bg-brandCream/50 rounded-lg px-2 py-1">
+                                            <span className="text-xs font-bold">{s.label[lang]} <span className="font-medium text-brandDark/50">· {s.hint[lang]}</span></span>
+                                            <span className="text-xs font-bold tabular-nums">{fmt(s.points)}/{s.max}</span>
+                                        </div>
+                                        {/* Appeal inputs are weights in 32 − (max/min) × culture, not additive points */}
+                                        <BreakdownRows items={s.id === 'appeal' ? s.items.map((it) => ({ ...it, max: null })) : s.items} lang={lang} t={t} />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="bg-white/95 p-5 rounded-2xl border border-brandBorder/60 shadow-sm print-card">
+                                <div className="flex justify-between items-baseline">
+                                    <h4 className="font-bold text-sm text-brandTerracotta">{t.pillars.coring}</h4>
+                                    <span className="text-xs font-bold tabular-nums">{fmt(result.pillars.coring.raw)}/{result.pillars.coring.max}</span>
+                                </div>
+                                <BreakdownRows items={result.pillars.coring.items} lang={lang} t={t} />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const tabClass = (key) => `px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                activeTab === key ? 'bg-brandDark text-brandCream shadow' : 'text-brandDark hover:bg-white/60'
+            }`;
+            const actionClass = "px-3.5 py-2 rounded-xl border border-brandBorder bg-white text-xs font-bold text-brandDark hover:bg-brandCream transition-all flex items-center space-x-1.5 shadow-sm";
+
+            return (
+                <div className="min-h-screen flex flex-col justify-between">
+                    <header className="w-full px-6 py-4 flex items-center justify-between border-b border-brandBorder bg-brandCream/90 backdrop-blur sticky top-0 z-40 no-print">
+                        <div className="flex items-center space-x-3 cursor-pointer group" onClick={() => { setStepIndex(FIRST_STEP); setIsCompleted(false); }}>
+                            <div className="w-10 h-10 rounded-xl bg-brandTerracotta flex items-center justify-center text-brandCream font-bold text-xl shadow-md group-hover:bg-brandDark transition-all">
+                                E9
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-extrabold tracking-tight text-brandDark">{t.brand}</h1>
+                                <p className="text-xs text-brandDark/70 font-medium">{t.tagline}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setLang(lang === 'en' ? 'pt' : 'en')}
+                            className="px-3 py-1.5 rounded-lg border border-brandBorder bg-white text-xs font-bold text-brandDark hover:bg-brandRose hover:text-white transition-all shadow-sm"
+                        >
+                            {lang === 'en' ? '🇧🇷 PT' : '🇺🇸 EN'}
+                        </button>
+                    </header>
+
+                    <main className="flex-grow w-full max-w-5xl mx-auto px-4 py-8">
+                        {!isCompleted ? (
+                            <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur rounded-2xl p-6 md:p-10 shadow-xl border border-brandBorder/60">
+                                <div className="mb-8">
+                                    <div className="flex justify-between text-xs font-bold text-brandDark/60 mb-2">
+                                        <span>{t.stepOf} {stepIndex - FIRST_STEP + 1} {t.of} {totalSteps - FIRST_STEP}</span>
+                                        <span>{Math.round(((stepIndex - FIRST_STEP + 1) / (totalSteps - FIRST_STEP)) * 100)}% {t.completed}</span>
+                                    </div>
+                                    <ProgressBar value={((stepIndex - FIRST_STEP + 1) / (totalSteps - FIRST_STEP)) * 100} color="#BF7D56" />
+                                </div>
+
+                                {stepIndex === 0 && (
+                                    <div className="card-enter">
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark">{t.chooseRoute}</h2>
+                                        <p className="text-xs text-brandDark/70 mt-1">{t.chooseRouteDesc}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                                            {['express', 'complete'].map((key) => renderOptionCard(route === key, () => setRoute(key), t.routes[key].title, t.routes[key].desc, key))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {stepIndex === 1 && (
+                                    <div className="card-enter">
+                                        <label htmlFor="business-name" className="block text-sm font-bold text-brandDark">
+                                            {t.businessName} <span className="text-brandTerracotta" aria-hidden="true">*</span>
+                                        </label>
+                                        <input
+                                            id="business-name"
+                                            type="text"
+                                            required
+                                            aria-required="true"
+                                            maxLength={80}
+                                            value={businessName}
+                                            onChange={(e) => setBusinessName(e.target.value)}
+                                            placeholder={t.businessNamePlaceholder}
+                                            className="mt-2 mb-8 w-full p-3.5 rounded-xl border border-brandBorder bg-white text-brandDark focus:border-brandTerracotta custom-ring text-base"
+                                        />
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark">{t.whoAreYou}</h2>
+                                        <p className="text-xs text-brandDark/70 mt-1">{t.whoAreYouDesc}</p>
+                                        <div className="grid grid-cols-1 gap-3 mt-6">
+                                            {Object.entries(t.roles).map(([key, r]) => renderOptionCard(role === key, () => setRole(key), r.title, r.desc, key))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {stepIndex === 2 && (
+                                    <div className="card-enter">
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark">{t.maturityState}</h2>
+                                        <p className="text-xs text-brandDark/70 mt-1">{t.maturityStateDesc}</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                                            {Object.entries(t.maturity).map(([key, m]) => renderOptionCard(maturity === key, () => setMaturity(key), m.title, m.desc, key))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {currentSection && (isExpress && !expressEligible ? (
+                                    <div className="card-enter">
+                                        <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark">{t.expressUnavailableTitle}</h2>
+                                        <p className="text-sm text-brandDark/70 mt-2">{t.expressUnavailableDesc}</p>
+                                        {ENABLE_COMPLETE_ROUTE && <button
+                                            onClick={() => setRoute('complete')}
+                                            className="mt-6 px-5 py-3 rounded-xl font-bold text-xs text-brandCream bg-brandTerracotta hover:bg-brandDark shadow-md transition-all"
+                                        >
+                                            {t.switchToComplete} →
+                                        </button>}
+                                    </div>
+                                ) : renderSection(currentSection))}
+
+                                <div className="mt-8 pt-6 border-t border-brandBorder/40 flex items-center justify-between">
+                                    <button
+                                        onClick={handlePrev}
+                                        disabled={stepIndex === FIRST_STEP}
+                                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${stepIndex === FIRST_STEP ? 'opacity-0 cursor-default' : 'text-brandDark hover:bg-brandBorder/30'}`}
+                                    >
+                                        ← {t.prev}
+                                    </button>
+                                    <button
+                                        onClick={handleNext}
+                                        disabled={!canAdvance()}
+                                        title={!canAdvance() && stepIndex >= 3 ? t.answerAll : (!canAdvance() && stepIndex === 1 ? t.nameAndProfileRequired : '')}
+                                        className={`px-6 py-3 rounded-xl font-bold text-xs text-brandCream shadow-md transition-all flex items-center space-x-2 ${
+                                            !canAdvance() ? 'bg-brandBorder cursor-not-allowed opacity-60' : 'bg-brandTerracotta hover:bg-brandDark hover:scale-[1.02] active:scale-[0.98]'
+                                        }`}
+                                    >
+                                        <span>{stepIndex === totalSteps - 1 ? t.submit : t.next}</span>
+                                        <span>→</span>
+                                    </button>
+                                </div>
+                                <div className="mt-4 text-center text-xs text-brandDark/50 font-medium">
+                                    {!canAdvance() && stepIndex >= 3 ? t.answerAll : (!canAdvance() && stepIndex === 1 ? t.nameAndProfileRequired : t.keyboardTip)}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="w-full space-y-6 card-enter">
+                                <div className="bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl border border-brandBorder/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <span className="text-xs text-brandDark/60 font-bold uppercase">
+                                            {t.routes[route]?.title || '—'} • {t.roles[role]?.title || '—'} • {t.maturity[maturity]?.title || '—'}
+                                        </span>
+                                        <h2 className="text-2xl font-extrabold text-brandDark mt-1">{businessName.trim() || t.summaryTitle}</h2>
+                                        {businessName.trim() && <p className="text-sm font-semibold text-brandTerracotta">{isExpress && expressResult.kind === 'orgType' ? t.orgTypeTitle : t.summaryTitle}</p>}
+                                        <p className="text-xs text-brandDark/60 mt-0.5 hidden print:block">{new Date().toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 no-print">
+                                        <button onClick={handleCopyShareLink} className={actionClass}><span>🔗</span><span>{t.shareURL}</span></button>
+                                        <button onClick={() => window.print()} className="px-3.5 py-2 rounded-xl bg-brandTerracotta text-white text-xs font-bold hover:bg-brandDark transition-all flex items-center space-x-1.5 shadow-sm">
+                                            <span>🖨️</span><span>{t.exportText}</span>
+                                        </button>
+                                        <button onClick={() => { setIsCompleted(false); setStepIndex(3); }} className={actionClass}>✏️ {t.editAnswers}</button>
+                                    </div>
+                                </div>
+
+                                <div className="flex space-x-2 border-b border-brandBorder/60 pb-2 no-print">
+                                    {(isExpress ? ['score', 'answers'] : ['score', 'bench', 'answers']).map((k) => (
+                                        <button key={k} onClick={() => setActiveTab(k)} className={tabClass(k)}>{t.tabs[k]}</button>
+                                    ))}
+                                </div>
+
+                                {/* Inactive tabs stay hidden on screen but are all printed */}
+                                <div className={`${activeTab === 'score' ? '' : 'hidden'} print:block`}>{isExpress ? (expressResult.kind === 'orgType' ? renderOrgTypeCard() : renderExpressScorecard()) : renderScorecard()}</div>
+                                {!isExpress && <div className={`${activeTab === 'bench' ? '' : 'hidden'} print:block print:mt-6`}>{renderBenchmark()}</div>}
+                                <div className={`${activeTab === 'answers' ? '' : 'hidden'} print:block print:mt-6`}>{renderAnswersReport()}</div>
+
+                                <div className="text-center pt-4 no-print">
+                                    <button onClick={startOver} className="text-xs font-bold text-brandDark/60 hover:text-brandTerracotta underline">{t.startOver}</button>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {toastMessage && (
+                        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-brandDark text-brandCream text-sm font-semibold px-5 py-3 rounded-xl shadow-xl z-50 no-print">
+                            {toastMessage}
+                        </div>
+                    )}
+
+                    <footer className="w-full text-center py-6 text-xs text-brandDark/50 no-print">
+                        Edgar9 • {t.tagline} • Molho Secreto
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
