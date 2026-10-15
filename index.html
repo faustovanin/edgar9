@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
     <meta charset="UTF-8">
+    <!-- The app ships its own PT/EN copy; browser auto-translation rewrites text nodes and crashes React -->
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edgar9 - Business Self-Assessment Tool</title>
     <link rel="icon" href="assets/favicon.ico" sizes="48x48">
@@ -1074,7 +1076,11 @@
         }
 
         function App() {
-            const [lang, setLang] = React.useState('en');
+            const [lang, setLang] = React.useState(() => {
+                const prefs = navigator.languages || [navigator.language || ''];
+                return prefs.some((l) => /^pt\b/i.test(l)) ? 'pt' : 'en';
+            });
+            React.useEffect(() => { document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en'; }, [lang]);
             const t = translations[lang];
 
             const [route, setRoute] = React.useState(DEFAULT_ROUTE); // 'express' | 'complete'
@@ -1735,8 +1741,34 @@
             );
         }
 
+        // Without a boundary, any render error unmounts everything and leaves only the page background
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { failed: false };
+            }
+            static getDerivedStateFromError() {
+                return { failed: true };
+            }
+            componentDidCatch(error, info) {
+                console.error('Edgar9 render error:', error, info);
+            }
+            render() {
+                if (!this.state.failed) return this.props.children;
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-6">
+                        <div className="max-w-md text-center bg-white/70 border border-brandBorder rounded-2xl p-8 shadow">
+                            <h1 className="text-xl font-extrabold text-brandDark">Algo deu errado / Something went wrong</h1>
+                            <p className="text-sm text-brandDark/70 mt-3">Se o tradutor automático do navegador estiver ativo, desative-o para este site e recarregue. / If your browser's auto-translate is on, turn it off for this site and reload.</p>
+                            <button onClick={() => window.location.reload()} className="mt-6 px-5 py-2 rounded-xl bg-brandTerracotta text-white font-bold">Recarregar / Reload</button>
+                        </div>
+                    </div>
+                );
+            }
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
 </body>
 </html>
